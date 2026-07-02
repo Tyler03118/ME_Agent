@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "me-agent"
+version = "0.1.0"
+description = "ME Engineering Assistant for grounded ECU manual question answering."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "ME Agent" }]
+dependencies = [
+    "langchain>=0.2",
+    "langchain-openai>=0.3",
+    "langgraph>=0.2",
+    "mlflow>=2.14",
+    "httpx[socks]>=0.28",
+    "pandas>=1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "pytest>=7.4",
+    "pylint>=3.0",
+]
+
+[project.scripts]
+me-agent = "me_agent.cli:ask_cli"
+me-agent-run-eval = "me_agent.cli:run_eval_cli"
+me-agent-log-model = "me_agent.cli:log_model_cli"
+me-agent-load-model = "me_agent.cli:load_model_cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.pylint.main]
+py-version = "3.11"
+source-roots = ["src"]
+persistent = false
+
+[tool.pylint.messages_control]
+disable = [
+    "too-few-public-methods",
+]
+
+[tool.pylint.format]
+max-line-length = 100

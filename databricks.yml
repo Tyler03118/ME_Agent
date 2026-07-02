@@ -1,0 +1,57 @@
+bundle:
+  name: me-engineering-assistant
+
+variables:
+  spark_version:
+    description: Databricks Runtime version for validation jobs.
+    default: 15.4.x-scala2.12
+  node_type_id:
+    description: Cluster node type for validation jobs.
+    default: i3.xlarge
+
+artifacts:
+  me_agent_wheel:
+    type: whl
+    path: .
+    build: python -m pip install build && python -m build --wheel
+
+resources:
+  jobs:
+    me_agent_log_and_validate:
+      name: me-agent-log-and-validate
+      tasks:
+        - task_key: log_mlflow_model
+          description: Build the package wheel and log the ME Engineering Assistant pyfunc model.
+          new_cluster:
+            spark_version: ${var.spark_version}
+            node_type_id: ${var.node_type_id}
+            num_workers: 1
+          python_wheel_task:
+            package_name: me-agent
+            entry_point: me-agent-log-model
+          libraries:
+            - whl: ./dist/*.whl
+        - task_key: run_evaluation
+          description: Run the golden ECU question evaluation after model logging.
+          depends_on:
+            - task_key: log_mlflow_model
+          new_cluster:
+            spark_version: ${var.spark_version}
+            node_type_id: ${var.node_type_id}
+            num_workers: 1
+          python_wheel_task:
+            package_name: me-agent
+            entry_point: me-agent-run-eval
+          libraries:
+            - whl: ./dist/*.whl
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: ~/.bundle/${bundle.name}/${bundle.target}
+  prod:
+    mode: production
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}

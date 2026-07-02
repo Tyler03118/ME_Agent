@@ -1,0 +1,77 @@
+"""MLflow pyfunc wrapper for the ME Engineering Assistant."""
+
+from __future__ import annotations
+
+from dataclasses import replace
+from pathlib import Path
+from typing import Any
+
+from me_agent.config import AgentConfig
+from me_agent.graph import EngineeringAssistant
+
+try:
+    import mlflow.pyfunc
+except ImportError:  # pragma: no cover - exercised only before optional dependency install.
+    _PythonModelBase = object
+else:
+    _PythonModelBase = mlflow.pyfunc.PythonModel
+
+
+class MEEngineeringAssistantModel(_PythonModelBase):
+    """Custom MLflow model exposing the assistant through predict()."""
+
+    def __init__(self) -> None:
+        self._assistant: EngineeringAssistant | None = None
+
+    def load_context(self, context: Any) -> None:
+        """Load the assistant with packaged MLflow artifacts when available."""
+
+        config = AgentConfig.from_env()
+        artifacts = getattr(context, "artifacts", None) if context is not None else None
+        if artifacts:
+            manual_dir = artifacts.get("manuals")
+            eval_path = artifacts.get("eval_questions")
+            config = replace(
+                config,
+                manual_dir=Path(manual_dir) if manual_dir else config.manual_dir,
+                eval_path=Path(eval_path) if eval_path else config.eval_path,
+            )
+        self._assistant = EngineeringAssistant.from_config(config)
+
+    # MLflow requires the `context` parameter even though this checkpoint does not use it.
+    # pylint: disable=unused-argument
+    def predict(
+        self,
+        context: Any,
+        model_input: list[str],
+        params: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return one structured assistant response per input question."""
+
+        del context, params
+        assistant = self._assistant or EngineeringAssistant.from_config()
+        return [assistant.ask(question).to_dict() for question in _extract_questions(model_input)]
+
+    def predict_stream(self, context: Any, model_input: list[str], params=None):
+        """Yield predictions for MLflow streaming interfaces."""
+
+        yield from self.predict(context, model_input, params)
+
+
+def _extract_questions(model_input: Any) -> list[str]:
+    if isinstance(model_input, str):
+        return [model_input]
+    if isinstance(model_input, list):
+        return [_extract_question_from_item(item) for item in model_input]
+    if hasattr(model_input, "to_dict"):
+        rows = model_input.to_dict(orient="records")
+        return [_extract_question_from_item(row) for row in rows]
+    raise TypeError("model_input must be a string, list, or DataFrame-like object")
+
+
+def _extract_question_from_item(item: Any) -> str:
+    if isinstance(item, str):
+        return item
+    if isinstance(item, dict) and "question" in item:
+        return str(item["question"])
+    raise TypeError("Each model input item must be a string or contain a question field")
