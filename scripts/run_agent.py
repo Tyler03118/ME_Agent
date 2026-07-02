@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from me_agent.graph import EngineeringAssistant
+from me_agent.workflow.graph import EngineeringAssistant
 
 
 def main() -> None:

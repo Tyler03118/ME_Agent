@@ -6,10 +6,9 @@ import re
 from collections.abc import Iterable
 from typing import Protocol
 
-from me_agent.embeddings import EmbeddingModel
-from me_agent.schemas import ManualChunk, RetrievalResult
-from me_agent.vector_store import VectorStore
-
+from me_agent.retrieval.embeddings import EmbeddingModel
+from me_agent.core.schemas import ManualChunk, RetrievalResult
+from me_agent.retrieval.vector_store import VectorStore
 
 TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+")
 SUPPORTED_RETRIEVER_MODES = {"keyword", "vector", "hybrid"}
@@ -31,7 +30,7 @@ class Retriever(Protocol):
 
 
 class InMemoryKeywordRetriever:
-    """Keyword-overlap retriever used for exact ECU terms and commands."""
+    """Keyword-overlap retriever for exact identifiers and numeric specs."""
 
     def __init__(self, chunks: Iterable[ManualChunk], top_k: int = 4) -> None:
         self.chunks = list(chunks)
@@ -49,7 +48,6 @@ class InMemoryKeywordRetriever:
         query_tokens = _tokens(query)
         if not query_tokens:
             raise ValueError("query must contain at least one searchable token")
-
         limit = top_k or self.top_k
         candidates = _candidate_chunks(self.chunks, required_sources)
         scored = [
@@ -65,7 +63,7 @@ class FullDocumentRetriever(InMemoryKeywordRetriever):
 
 
 class InMemoryVectorRetriever:
-    """Vector retriever backed by a prebuilt in-memory vector store."""
+    """Vector retriever backed by a prebuilt VectorStore."""
 
     def __init__(
         self,
@@ -103,7 +101,7 @@ class InMemoryVectorRetriever:
 
 
 class HybridRetriever:
-    """Hybrid retriever that merges keyword results before vector results."""
+    """Hybrid retriever that merges keyword-first results with vector recall."""
 
     def __init__(
         self,
@@ -127,7 +125,7 @@ class HybridRetriever:
         required_sources: set[str] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
-        """Return merged keyword-first and vector-recall results."""
+        """Return merged keyword and vector results without reranking."""
 
         limit = top_k or self.top_k
         candidate_limit = max(limit, len(required_sources or ()))
@@ -145,27 +143,52 @@ class HybridRetriever:
         return _with_required_source_coverage(merged, required_sources, limit)
 
 
-def build_retriever(
+def build_retriever(  # pylint: disable=too-many-arguments
     mode: str,
     chunks: Iterable[ManualChunk],
     *,
     top_k: int,
     keyword_weight: float = 0.5,
     vector_weight: float = 0.5,
+    embedding_backend: str = "auto",
+    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
 ) -> Retriever:
     """Build a retriever for the configured mode."""
 
+    del keyword_weight, vector_weight
     normalized_mode = mode.lower().strip()
     chunk_list = list(chunks)
     if normalized_mode == "keyword":
         return InMemoryKeywordRetriever(chunk_list, top_k=top_k)
     if normalized_mode == "vector":
-        return InMemoryVectorRetriever(chunk_list, top_k=top_k)
+        return InMemoryVectorRetriever(
+            chunk_list,
+            top_k=top_k,
+            embedding_model=EmbeddingModel(
+                model_name=embedding_model_name,
+                backend=embedding_backend,
+            ),
+        )
     if normalized_mode == "hybrid":
-        del keyword_weight, vector_weight
-        return HybridRetriever(chunk_list, top_k=top_k)
+        vector = InMemoryVectorRetriever(
+            chunk_list,
+            top_k=top_k,
+            embedding_model=EmbeddingModel(
+                model_name=embedding_model_name,
+                backend=embedding_backend,
+            ),
+        )
+        return HybridRetriever(
+            chunk_list,
+            top_k=top_k,
+            keyword_retriever=InMemoryKeywordRetriever(chunk_list, top_k=top_k),
+            vector_retriever=vector,
+        )
     raise ValueError(
-        f"Unsupported retriever mode: {mode}. Expected one of {sorted(SUPPORTED_RETRIEVER_MODES)}."
+        (
+            f"Unsupported retriever mode: {mode}. "
+            f"Expected one of {sorted(SUPPORTED_RETRIEVER_MODES)}."
+        )
     )
 
 
@@ -185,7 +208,6 @@ def _with_required_source_coverage(
 ) -> list[RetrievalResult]:
     if not required_sources:
         return scored[:limit]
-
     selected: list[RetrievalResult] = []
     for source in sorted(required_sources):
         source_results = [
@@ -193,7 +215,6 @@ def _with_required_source_coverage(
         ]
         if source_results:
             selected.append(source_results[0])
-
     selected_ids = {_chunk_id(result.chunk) for result in selected}
     for result in scored:
         if len(selected) >= max(limit, len(required_sources)):

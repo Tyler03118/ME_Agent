@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from me_agent.data_loader import MarkdownManualLoader
+from me_agent.ingestion.data_loader import MarkdownManualLoader
 
 
 def test_loader_reads_markdown_manual_with_metadata(tmp_path: Path) -> None:

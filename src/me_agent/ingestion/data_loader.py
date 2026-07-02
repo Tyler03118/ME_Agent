@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from me_agent.schemas import ManualDocument
+from me_agent.core.schemas import ManualDocument
 
 
 DOCUMENT_ID_PATTERN = re.compile(r"Document ID:\s*([A-Z0-9_.-]+)", re.IGNORECASE)

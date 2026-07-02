@@ -6,8 +6,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from me_agent.config import AgentConfig
-from me_agent.graph import EngineeringAssistant
+from me_agent.core.config import AgentConfig
+from me_agent.workflow.graph import EngineeringAssistant
 
 try:
     import mlflow.pyfunc
@@ -38,12 +38,12 @@ class MEEngineeringAssistantModel(_PythonModelBase):
             )
         self._assistant = EngineeringAssistant.from_config(config)
 
-    # MLflow requires the `context` parameter even though this checkpoint does not use it.
+    # MLflow requires the context parameter even though prediction does not use it directly.
     # pylint: disable=unused-argument
     def predict(
         self,
         context: Any,
-        model_input: list[str],
+        model_input,
         params: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """Return one structured assistant response per input question."""
@@ -52,7 +52,7 @@ class MEEngineeringAssistantModel(_PythonModelBase):
         assistant = self._assistant or EngineeringAssistant.from_config()
         return [assistant.ask(question).to_dict() for question in _extract_questions(model_input)]
 
-    def predict_stream(self, context: Any, model_input: list[str], params=None):
+    def predict_stream(self, context: Any, model_input: Any, params=None):
         """Yield predictions for MLflow streaming interfaces."""
 
         yield from self.predict(context, model_input, params)

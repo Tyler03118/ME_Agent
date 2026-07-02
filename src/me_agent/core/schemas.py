@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-
 RouteCategory = Literal[
     "ecu_700_lookup",
     "ecu_800_lookup",
@@ -15,7 +14,6 @@ RouteCategory = Literal[
     "configuration",
     "general",
 ]
-
 VerifierStatus = Literal["supported", "partially_supported", "unsupported", "contradicted"]
 
 
@@ -103,13 +101,14 @@ class EvaluationCase:
 
 
 @dataclass(frozen=True)
-class EvaluationResult:
+class EvaluationResult:  # pylint: disable=too-many-instance-attributes
     """Evaluation output for one question."""
 
     case: EvaluationCase
     response: AgentResponse
     latency_seconds: float
+    semantic_similarity: float
+    token_coverage: float
     passed: bool = False
-    source_correct: bool = False
-    route_correct: bool = False
-    key_facts_found: tuple[str, ...] = ()
+    source_diagnostic: float = 0.0
+    route_diagnostic: str = ""

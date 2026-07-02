@@ -2,8 +2,19 @@
 
 from __future__ import annotations
 
-from me_agent.retriever import _tokens
-from me_agent.schemas import RetrievalResult, VerificationResult
+import re
+
+from me_agent.retrieval.retriever import _tokens
+from me_agent.core.schemas import RetrievalResult, VerificationResult
+
+
+STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "based", "be", "by", "for", "from",
+    "has", "have", "in", "is", "it", "of", "on", "or", "provided", "the", "to",
+    "with", "while", "than", "this", "that", "following", "follows", "models",
+    "model", "series", "base", "plus", "md", "markdown", "evidence",
+}
+CITATION_PATTERN = re.compile(r"\[[^\]]+\]")
 
 
 def verify_answer(answer: str, retrieved_context: list[RetrievalResult]) -> VerificationResult:
@@ -24,8 +35,8 @@ def verify_answer(answer: str, retrieved_context: list[RetrievalResult]) -> Veri
 
     context_tokens = set()
     for result in retrieved_context:
-        context_tokens.update(_tokens(result.chunk.content))
-    answer_tokens = _tokens(answer)
+        context_tokens.update(_content_tokens(result.chunk.content))
+    answer_tokens = _content_tokens(answer)
     if not answer_tokens:
         return VerificationResult("unsupported", 0.0, "The answer is empty.")
 
@@ -39,3 +50,8 @@ def verify_answer(answer: str, retrieved_context: list[RetrievalResult]) -> Veri
             "Some answer tokens appear in context.",
         )
     return VerificationResult("unsupported", 0.0, "The answer has low overlap with context.")
+
+
+def _content_tokens(text: str) -> set[str]:
+    cleaned = CITATION_PATTERN.sub(" ", text)
+    return {token for token in _tokens(cleaned) if token not in STOPWORDS}

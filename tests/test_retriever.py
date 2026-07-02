@@ -1,5 +1,5 @@
-from me_agent.retriever import InMemoryKeywordRetriever
-from me_agent.schemas import ManualChunk
+from me_agent.retrieval.retriever import InMemoryKeywordRetriever
+from me_agent.core.schemas import ManualChunk
 
 
 def test_retriever_returns_relevant_chunks_with_scores() -> None:
@@ -36,7 +36,7 @@ def test_retriever_applies_source_filter() -> None:
 
 
 def test_build_retriever_supports_keyword_vector_and_hybrid_modes() -> None:
-    from me_agent.retriever import (
+    from me_agent.retrieval.retriever import (
         HybridRetriever,
         InMemoryVectorRetriever,
         build_retriever,
@@ -57,7 +57,7 @@ def test_build_retriever_supports_keyword_vector_and_hybrid_modes() -> None:
 
 
 def test_vector_retriever_uses_in_memory_vectors_and_source_filters() -> None:
-    from me_agent.retriever import InMemoryVectorRetriever
+    from me_agent.retrieval.retriever import InMemoryVectorRetriever
 
     chunks = [
         ManualChunk(
@@ -79,7 +79,7 @@ def test_vector_retriever_uses_in_memory_vectors_and_source_filters() -> None:
 
 
 def test_hybrid_retriever_preserves_exact_terms_and_required_source_coverage() -> None:
-    from me_agent.retriever import HybridRetriever
+    from me_agent.retrieval.retriever import HybridRetriever
 
     chunks = [
         ManualChunk(
@@ -111,7 +111,7 @@ def test_hybrid_retriever_preserves_exact_terms_and_required_source_coverage() -
 
 
 def test_unknown_retriever_mode_is_rejected() -> None:
-    from me_agent.retriever import build_retriever
+    from me_agent.retrieval.retriever import build_retriever
 
     try:
         build_retriever("unknown", [], top_k=1)
@@ -122,7 +122,7 @@ def test_unknown_retriever_mode_is_rejected() -> None:
 
 
 def test_keyword_retriever_does_not_initialize_embedding_layer(monkeypatch) -> None:
-    import me_agent.retriever as retriever_module
+    import me_agent.retrieval.retriever as retriever_module
 
     def fail_embedding_init():
         raise AssertionError("keyword mode must not initialize embeddings")
@@ -137,8 +137,8 @@ def test_keyword_retriever_does_not_initialize_embedding_layer(monkeypatch) -> N
 
 
 def test_vector_retriever_uses_prebuilt_vector_store() -> None:
-    from me_agent.retriever import InMemoryVectorRetriever
-    from me_agent.vector_store import VectorStore
+    from me_agent.retrieval.retriever import InMemoryVectorRetriever
+    from me_agent.retrieval.vector_store import VectorStore
 
     chunks = [ManualChunk(content="ECU-850b has an NPU.", metadata={"source": "plus.md"})]
 
@@ -148,8 +148,8 @@ def test_vector_retriever_uses_prebuilt_vector_store() -> None:
 
 
 def test_hybrid_retriever_only_merges_keyword_and_vector_results() -> None:
-    from me_agent.retriever import HybridRetriever
-    from me_agent.schemas import RetrievalResult
+    from me_agent.retrieval.retriever import HybridRetriever
+    from me_agent.core.schemas import RetrievalResult
 
     class StubRetriever:
         def __init__(self, results):

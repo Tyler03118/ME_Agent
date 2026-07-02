@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from me_agent.schemas import ManualChunk, ManualDocument
+from me_agent.core.schemas import ManualChunk, ManualDocument
 
 
 def chunk_documents(

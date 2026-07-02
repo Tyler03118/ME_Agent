@@ -1,4 +1,7 @@
-from me_agent.mlflow_model import MEEngineeringAssistantModel
+import pandas as pd
+
+from me_agent.tracking.mlflow_logging import MODEL_REQUIREMENTS
+from me_agent.tracking.mlflow_model import MEEngineeringAssistantModel
 
 
 def test_mlflow_model_predict_accepts_list_input() -> None:
@@ -11,8 +14,17 @@ def test_mlflow_model_predict_accepts_list_input() -> None:
     assert "answer" in predictions[0]
 
 
+def test_mlflow_model_predict_accepts_dataframe_input() -> None:
+    model = MEEngineeringAssistantModel()
+
+    predictions = model.predict(None, pd.DataFrame({"question": ["今天天气如何"]}))
+
+    assert predictions[0]["route_category"] == "general"
+    assert "outside the ECU manual scope" in predictions[0]["answer"]
+
+
 def test_load_context_uses_packaged_artifacts(monkeypatch, tmp_path) -> None:
-    import me_agent.mlflow_model as mlflow_model
+    import me_agent.tracking.mlflow_model as mlflow_model
 
     manuals = tmp_path / "manuals"
     eval_questions = tmp_path / "test-questions.csv"
@@ -41,3 +53,12 @@ def test_load_context_uses_packaged_artifacts(monkeypatch, tmp_path) -> None:
 
     assert captured["config"].manual_dir == manuals
     assert captured["config"].eval_path == eval_questions
+
+
+def test_mlflow_requirements_are_resolvable_packages() -> None:
+    joined = "\n".join(MODEL_REQUIREMENTS)
+
+    assert "me-agent" not in joined
+    assert "langchain" in joined
+    assert "sentence-transformers" in joined
+    assert "faiss-cpu" in joined

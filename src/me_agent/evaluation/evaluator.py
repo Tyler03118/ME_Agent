@@ -1,4 +1,4 @@
-"""Evaluation utilities for golden ECU questions."""
+"""Honest evaluation utilities for golden ECU questions."""
 
 from __future__ import annotations
 
@@ -8,48 +8,15 @@ import time
 from pathlib import Path
 from typing import Any
 
-from me_agent.graph import EngineeringAssistant
-from me_agent.router import ECU_700_SOURCE, ECU_800_BASE_SOURCE, ECU_800_PLUS_SOURCE
-from me_agent.schemas import EvaluationCase, EvaluationResult
+import numpy as np
 
+from me_agent.retrieval.embeddings import EmbeddingModel, tokenize
+from me_agent.workflow.graph import EngineeringAssistant
+from me_agent.core.schemas import EvaluationCase, EvaluationResult
 
-EXPECTED_SOURCES = {
-    "1": {ECU_700_SOURCE},
-    "2": {ECU_800_BASE_SOURCE},
-    "3": {ECU_800_PLUS_SOURCE},
-    "4": {ECU_800_BASE_SOURCE, ECU_800_PLUS_SOURCE},
-    "5": {ECU_700_SOURCE, ECU_800_BASE_SOURCE},
-    "6": {ECU_800_PLUS_SOURCE},
-    "7": {ECU_700_SOURCE, ECU_800_BASE_SOURCE, ECU_800_PLUS_SOURCE},
-    "8": {ECU_700_SOURCE, ECU_800_BASE_SOURCE, ECU_800_PLUS_SOURCE},
-    "9": {ECU_700_SOURCE, ECU_800_BASE_SOURCE, ECU_800_PLUS_SOURCE},
-    "10": {ECU_800_PLUS_SOURCE},
-}
-
-EXPECTED_ROUTES = {
-    "1": "ecu_700_lookup",
-    "2": "ecu_800_lookup",
-    "3": "ecu_850b_lookup",
-    "4": "comparison",
-    "5": "comparison",
-    "6": "ecu_850b_lookup",
-    "7": "feature_availability",
-    "8": "comparison",
-    "9": "comparison",
-    "10": "configuration",
-}
-
-KEY_FACTS = {
-    "1": ("+85", "-40"),
-    "2": ("2 GB", "LPDDR4"),
-    "3": ("NPU", "5 TOPS"),
-    "4": ("5 TOPS", "4 GB", "2 GB", "1.5 GHz", "1.2 GHz"),
-    "5": ("Single Channel", "1 Mbps", "Dual Channel", "2 Mbps"),
-    "6": ("1.7A", "550mA"),
-    "7": ("ECU-850", "ECU-850b", "ECU-750", "not"),
-    "8": ("2 MB", "16 GB", "32 GB"),
-    "9": ("ECU-850", "ECU-850b", "+105", "+85"),
-    "10": ("me-driver-ctl --enable-npu --mode=performance",),
+STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "have", "in",
+    "is", "it", "of", "on", "or", "the", "to", "with", "while", "than", "this", "that",
 }
 
 
@@ -59,7 +26,6 @@ def load_evaluation_cases(csv_path: str | Path) -> list[EvaluationCase]:
     path = Path(csv_path)
     if not path.exists():
         raise FileNotFoundError(f"Evaluation file does not exist: {path}")
-
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         return [
@@ -77,32 +43,57 @@ def load_evaluation_cases(csv_path: str | Path) -> list[EvaluationCase]:
 def evaluate_cases(
     assistant: EngineeringAssistant,
     cases: list[EvaluationCase],
+    *,
+    pass_threshold: float | None = None,
+    embedding_model: EmbeddingModel | None = None,
 ) -> list[EvaluationResult]:
-    """Run the assistant over evaluation cases and capture scored results."""
+    """Run the assistant and score answers against Expected_Answer generically."""
 
+    threshold = pass_threshold or assistant.config.eval_pass_threshold
+    scorer = embedding_model or EmbeddingModel(
+        model_name=assistant.config.embedding_model_name,
+        backend=assistant.config.embedding_backend,
+    )
     results: list[EvaluationResult] = []
     for case in cases:
         start = time.perf_counter()
         response = assistant.ask(case.question)
         latency = time.perf_counter() - start
-        key_facts_found = _key_facts_found(case.question_id, response.answer)
-        source_correct = EXPECTED_SOURCES.get(case.question_id, set()).issubset(response.sources)
-        route_correct = response.route_category == EXPECTED_ROUTES.get(case.question_id)
-        passed = bool(key_facts_found) and len(key_facts_found) == len(
-            KEY_FACTS.get(case.question_id, ())
-        ) and source_correct and route_correct
+        similarity = semantic_similarity(case.expected_answer, response.answer, scorer)
+        coverage = token_coverage(case.expected_answer, response.answer)
+        combined = 0.65 * similarity + 0.35 * coverage
         results.append(
             EvaluationResult(
                 case=case,
                 response=response,
                 latency_seconds=latency,
-                passed=passed,
-                source_correct=source_correct,
-                route_correct=route_correct,
-                key_facts_found=key_facts_found,
+                semantic_similarity=similarity,
+                token_coverage=coverage,
+                passed=combined >= threshold,
+                source_diagnostic=round(len(response.sources), 4),
+                route_diagnostic=response.route_category,
             )
         )
     return results
+
+
+def semantic_similarity(expected: str, actual: str, embedding_model: EmbeddingModel) -> float:
+    """Compute cosine similarity between expected and actual answer embeddings."""
+
+    vectors = embedding_model.encode([expected, actual])
+    if vectors.shape[0] != 2:
+        return 0.0
+    return round(float(np.dot(vectors[0], vectors[1])), 4)
+
+
+def token_coverage(expected: str, actual: str) -> float:
+    """Measure expected-answer content token coverage in the actual answer."""
+
+    expected_tokens = _content_tokens(expected)
+    if not expected_tokens:
+        return 0.0
+    actual_tokens = set(_content_tokens(actual))
+    return round(len(set(expected_tokens) & actual_tokens) / len(set(expected_tokens)), 4)
 
 
 def summarize_evaluation(results: list[EvaluationResult]) -> dict[str, Any]:
@@ -119,6 +110,8 @@ def summarize_evaluation(results: list[EvaluationResult]) -> dict[str, Any]:
             fallback_reasons[reason] = fallback_reasons.get(reason, 0) + 1
     case_results = [_case_result_detail(result) for result in results]
     failed_cases = [detail for detail in case_results if not detail["passed"]]
+    mean_similarity = _mean(result.semantic_similarity for result in results)
+    mean_coverage = _mean(result.token_coverage for result in results)
     return {
         "total_cases": total,
         "passed_cases": passed,
@@ -130,6 +123,8 @@ def summarize_evaluation(results: list[EvaluationResult]) -> dict[str, Any]:
         "fallback_reasons": fallback_reasons,
         "avg_latency_seconds": round(avg_latency, 4),
         "max_latency_seconds": round(max((r.latency_seconds for r in results), default=0.0), 4),
+        "mean_semantic_similarity": mean_similarity,
+        "mean_token_coverage": mean_coverage,
         "case_results": case_results,
         "failed_cases": failed_cases,
     }
@@ -143,23 +138,40 @@ def write_evaluation_results(
 
     path = Path(output_path)
     summary = summarize_evaluation(results)
-    payload = {
-        "summary": summary,
-        "results": [_case_result_detail(result) for result in results],
-    }
+    payload = {"summary": summary, "results": [_case_result_detail(result) for result in results]}
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return summary
 
 
+def log_evaluation_to_mlflow(summary: dict[str, Any], artifact_path: str | Path) -> None:
+    """Log evaluation metrics and result JSON to an active MLflow run."""
+
+    import mlflow  # pylint: disable=import-outside-toplevel
+
+    metric_names = (
+        "accuracy",
+        "avg_latency_seconds",
+        "max_latency_seconds",
+        "used_llm_rate",
+        "fallback_cases",
+        "mean_semantic_similarity",
+        "mean_token_coverage",
+    )
+    for name in metric_names:
+        mlflow.log_metric(name, float(summary.get(name, 0.0)))
+    mlflow.log_artifact(str(artifact_path))
+
+
 def _case_result_detail(result: EvaluationResult) -> dict[str, Any]:
-    key_facts = KEY_FACTS.get(result.case.question_id, ())
-    found = set(result.key_facts_found)
     return {
         "question_id": result.case.question_id,
         "category": result.case.category,
         "question": result.case.question,
         "expected_answer": result.case.expected_answer,
+        "actual_answer": result.response.answer,
         "agent_answer": result.response.answer,
+        "semantic_similarity": result.semantic_similarity,
+        "token_coverage": result.token_coverage,
         "passed": result.passed,
         "retriever_mode": result.response.retriever_mode,
         "used_llm": result.response.used_llm,
@@ -167,19 +179,20 @@ def _case_result_detail(result: EvaluationResult) -> dict[str, Any]:
         "latency_seconds": round(result.latency_seconds, 4),
         "sources": list(result.response.sources),
         "route_category": result.response.route_category,
-        "key_facts_found": list(result.key_facts_found),
-        "missing_key_facts": [fact for fact in key_facts if fact not in found],
-        "source_correct": result.source_correct,
-        "route_correct": result.route_correct,
+        "source_diagnostic": result.source_diagnostic,
+        "route_diagnostic": result.route_diagnostic,
         "confidence": result.response.confidence,
+        "verifier_status": result.response.verifier_status,
         "needs_human_review": result.response.needs_human_review,
     }
 
 
-def _key_facts_found(question_id: str, answer: str) -> tuple[str, ...]:
-    answer_lower = answer.lower()
-    found = []
-    for fact in KEY_FACTS.get(question_id, ()):
-        if fact.lower() in answer_lower:
-            found.append(fact)
-    return tuple(found)
+def _content_tokens(text: str) -> list[str]:
+    return [token for token in tokenize(text) if token not in STOPWORDS]
+
+
+def _mean(values) -> float:
+    collected = list(values)
+    if not collected:
+        return 0.0
+    return round(sum(collected) / len(collected), 4)

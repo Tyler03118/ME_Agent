@@ -1,4 +1,6 @@
-from me_agent.config import AgentConfig
+import builtins
+
+from me_agent.core.config import AgentConfig, _load_dotenv_if_available
 
 
 def test_agent_config_defaults_to_deepseek_v4_flash() -> None:
@@ -9,8 +11,7 @@ def test_agent_config_defaults_to_deepseek_v4_flash() -> None:
     assert config.anthropic_base_url == "https://api.deepseek.com/anthropic"
     assert config.api_key_env_var == "DEEPSEEK_API_KEY"
     assert config.retriever_mode == "hybrid"
-    assert config.vector_weight == 0.5
-    assert config.keyword_weight == 0.5
+    assert config.embedding_backend == "auto"
 
 
 def test_agent_config_reads_deepseek_overrides_from_env(monkeypatch) -> None:
@@ -27,3 +28,16 @@ def test_agent_config_reads_deepseek_overrides_from_env(monkeypatch) -> None:
     assert config.anthropic_base_url == "https://example.com/anthropic"
     assert config.api_key_env_var == "CUSTOM_DEEPSEEK_KEY"
     assert config.retriever_mode == "vector"
+
+
+def test_dotenv_loading_soft_fails_when_dependency_is_unavailable(monkeypatch) -> None:
+    real_import = builtins.__import__
+
+    def blocked_import(name, *args, **kwargs):
+        if name == "dotenv":
+            raise ImportError("blocked")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", blocked_import)
+
+    _load_dotenv_if_available()

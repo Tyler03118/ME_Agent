@@ -1,92 +1,134 @@
 # ME Engineering Assistant
 
-ME Engineering Assistant is a Python package for answering engineering questions
-over ECU product manuals with a grounded RAG workflow. The target production
-shape is LangChain plus LangGraph orchestration, deterministic routing across
-ECU product families, an in-memory retriever, MLflow model packaging, and
-Databricks Asset Bundle deployment.
+ME Engineering Assistant is an installable Python 3.11 package for answering
+questions over ECU product manuals with a grounded RAG workflow. It uses
+LangChain-compatible DeepSeek generation, LangGraph workflow orchestration,
+keyword/vector/hybrid retrieval, honest evaluation, and MLflow pyfunc packaging.
 
-This repository now contains the local challenge implementation: Markdown
-manual loading, metadata-preserving chunking, deterministic routing, switchable
-keyword/vector/hybrid in-memory retrieval, a real LangGraph workflow,
-DeepSeek/OpenAI-compatible generation with deterministic grounded fallback,
-evaluation artifacts, and MLflow pyfunc packaging.
+The implementation intentionally stays as a single-agent RAG system. It has
+agent-like control flow through conditional routing, one retrieval retry, and a
+human-review branch, without introducing unnecessary multi-agent complexity.
 
 ## Architecture
 
-The package is organized around small modules with narrow responsibilities:
+```mermaid
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	validate_input(validate_input)
+	route_query(route_query)
+	out_of_scope(out_of_scope)
+	retrieve_context(retrieve_context)
+	broaden_retrieve(broaden_retrieve)
+	generate_answer(generate_answer)
+	verify_answer(verify_answer)
+	compute_confidence(compute_confidence)
+	finalize_response(finalize_response)
+	human_review(human_review)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> validate_input;
+	broaden_retrieve --> generate_answer;
+	compute_confidence -. &nbsp;finalize&nbsp; .-> finalize_response;
+	compute_confidence -.-> human_review;
+	generate_answer --> verify_answer;
+	retrieve_context -. &nbsp;broaden&nbsp; .-> broaden_retrieve;
+	retrieve_context -. &nbsp;generate&nbsp; .-> generate_answer;
+	route_query -.-> out_of_scope;
+	route_query -. &nbsp;retrieve&nbsp; .-> retrieve_context;
+	validate_input --> route_query;
+	verify_answer --> compute_confidence;
+	finalize_response --> __end__;
+	human_review --> __end__;
+	out_of_scope --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+```
 
-- `config`: runtime paths, retrieval parameters, and DeepSeek client settings.
-- `schemas`: dataclasses used across the agent.
-- `data_loader`: Markdown manual discovery and metadata extraction.
-- `chunking`: deterministic preprocessing into standardized chunks with metadata preservation.
-- `embeddings`: local normalized embedding wrapper used only by vector and hybrid retrieval.
-- `vector_store`: in-memory vector index built once from chunks at startup.
-- `retriever`: switchable keyword, vector, and hybrid retrievers that consume preprocessed chunks.
-- `router`: deterministic query routing across ECU-700 and ECU-800 sources.
-- `graph`: LangGraph workflow entry point and structured response assembly.
-- `verifier`, `confidence`, `hitl`: answer support, heuristic confidence, and
-  human-review decisions.
-- `evaluation`: CSV evaluation case loading and simple evaluation helpers.
-- `mlflow_model`: custom `mlflow.pyfunc.PythonModel` wrapper.
+Package layout:
 
-See `docs/architecture.md` for the current design and expansion plan.
+- `me_agent.core`: runtime configuration and shared dataclass schemas.
+- `me_agent.ingestion`: Markdown loading and deterministic chunk preprocessing.
+- `me_agent.retrieval`: embeddings, FAISS/numpy vector store, and keyword/vector/hybrid retrievers.
+- `me_agent.generation`: DeepSeek generation, grounded fallback, prompts, and answer verification.
+- `me_agent.workflow`: LangGraph workflow, routing, confidence, and human-review branching.
+- `me_agent.evaluation`: Expected_Answer similarity, token coverage, latency, and MLflow eval logging.
+- `me_agent.tracking`: MLflow pyfunc model and reusable model logging helpers.
+- `me_agent.cli`: console entry points declared in `pyproject.toml`.
 
 ## Setup
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
+python -c "import me_agent"
 ```
 
 ## Model Configuration
 
-The default model configuration targets DeepSeek V4 Flash:
+Default live generation uses DeepSeek V4 Flash through the OpenAI-compatible API.
+Without `DEEPSEEK_API_KEY`, the system falls back to generic extractive synthesis
+from retrieved context. The fallback is intentionally not tuned to the evaluation
+questions.
 
 ```text
 ME_AGENT_MODEL_NAME=deepseek-v4-flash
 ME_AGENT_OPENAI_BASE_URL=https://api.deepseek.com
-ME_AGENT_ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
 ME_AGENT_API_KEY_ENV_VAR=DEEPSEEK_API_KEY
 ME_AGENT_RETRIEVER_MODE=hybrid  # keyword | vector | hybrid
-ME_AGENT_KEYWORD_WEIGHT=0.5
-ME_AGENT_VECTOR_WEIGHT=0.5
-ME_AGENT_MODEL_TIMEOUT_SECONDS=8
-ME_AGENT_MODEL_MAX_RETRIES=0
+ME_AGENT_EMBEDDING_BACKEND=auto # auto | sentence-transformers | hashing
+ME_AGENT_ALLOW_EMBEDDING_DOWNLOAD=0
 DEEPSEEK_API_KEY=
 ```
 
-Do not commit API keys. Add `DEEPSEEK_API_KEY` locally through your shell,
-`.env`, Databricks secrets, or the deployment environment. Local MLflow scripts
-default to `sqlite:///mlflow.db` unless `MLFLOW_TRACKING_URI` is already set.
+`auto` attempts sentence-transformers first and gracefully falls back to generic
+hashing if the package/model is unavailable. To allow the first run to download
+`sentence-transformers/all-MiniLM-L6-v2` (roughly 80 MB), set
+`ME_AGENT_ALLOW_EMBEDDING_DOWNLOAD=1`. Offline CI can force
+`ME_AGENT_EMBEDDING_BACKEND=hashing`.
 
 ## Usage
 
 ```bash
 python scripts/run_agent.py "How much RAM does the ECU-850 have?"
-python scripts/run_eval.py
-ME_AGENT_RETRIEVER_MODE=vector python scripts/run_eval.py
+python scripts/run_agent.py "今天天气如何"
 ME_AGENT_RETRIEVER_MODE=keyword python scripts/run_eval.py
+ME_AGENT_RETRIEVER_MODE=vector python scripts/run_eval.py
+ME_AGENT_RETRIEVER_MODE=hybrid python scripts/run_eval.py
+python scripts/log_mlflow_model.py
+python scripts/load_mlflow_model.py
 ```
 
+## Evaluation
 
-## Databricks Asset Bundle
+Evaluation no longer uses question-id-specific facts or route/source pass/fail
+rules. It compares each agent answer to the CSV `Expected_Answer` using semantic
+similarity plus expected-token coverage. Route and source fields remain in
+`eval_results.json` as diagnostics.
 
-This repo includes `databricks.yml` with a `me-agent-log-and-validate` job. The
-job builds the wheel, logs the MLflow pyfunc model, and runs the golden
-evaluation task from package entry points.
+`python scripts/run_eval.py` starts an MLflow run, logs metrics, and logs
+`eval_results.json` as an artifact. Key metrics include accuracy, latency,
+`used_llm_rate`, fallback count, mean semantic similarity, and mean token
+coverage.
 
-```bash
-databricks bundle validate
-databricks bundle deploy -t dev
-databricks bundle run me_agent_log_and_validate -t dev
-```
+Final measured results on 2026-07-02:
 
-Set `DEEPSEEK_API_KEY` or the equivalent Databricks secret-backed environment
-variable in the target workspace before running live model evaluation.
+| Mode | Accuracy | used_llm_rate | Avg latency | Max latency | Mean similarity | Mean token coverage |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Live DeepSeek (`deepseek-v4-flash`) | 1.00 | 1.00 | 2.9374s | 5.2371s | 0.6935 | 0.7248 |
+| No-key extractive fallback | 0.70 | 0.00 | 0.0034s | 0.0119s | 0.5487 | 0.5704 |
+
+The offline score is intentionally reported as lower because the fallback is a
+generic extractor, not a hidden set of canned answers.
 
 ## Validation
 
-Current validation commands:
+Recommended checks:
 
 ```bash
 python -m compileall src tests scripts
@@ -97,18 +139,15 @@ python scripts/log_mlflow_model.py
 python scripts/load_mlflow_model.py
 ```
 
-The latest live DeepSeek Flash evaluation using the default `hybrid` retriever
-passed 10/10 with `accuracy: 1.0`, `used_llm_rate: 1.0`, average latency
-2.8850 seconds, and max latency 6.9124 seconds. `eval_results.json` and the CLI output include each question,
-expected answer, agent-produced answer, sources, route, key facts, and latency.
+Current tests cover importability without hard dependency on `.env`, generic
+fallback behavior, out-of-domain routing, conditional graph branches, retrieval
+modes, vector index build-once behavior, generic evaluation fields, and MLflow
+model input handling.
 
 ## Limitations
 
-The vector retriever is a local in-memory sparse embedding index, not a hosted
-neural embedding model backed by FAISS or Chroma. The deterministic fallback and
-post-generation stabilizer are intentionally tuned for the provided ECU manuals
-and fixed challenge evaluation set. Databricks Asset Bundle packaging is included, but it still requires a configured
-Databricks workspace, cluster policy compatibility, and workspace secrets before
-running in your target environment. MLflow currently uses local SQLite-backed
-tracking for local smoke tests and emits the standard CloudPickle warning for
-pyfunc object serialization.
+- No-key fallback is extractive and may be less polished than live DeepSeek output.
+- Sentence-transformers may need a first-run model download unless hashing fallback is used.
+- FAISS is preferred, but numpy similarity fallback keeps offline runs from hard-crashing.
+- Reranking is future work; hybrid retrieval currently merges keyword-first and vector results.
+- Live evaluation quality and latency depend on provider/network availability.

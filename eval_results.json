@@ -8,34 +8,33 @@
     "used_llm_rate": 1.0,
     "fallback_cases": 0,
     "fallback_reasons": {},
-    "avg_latency_seconds": 2.885,
-    "max_latency_seconds": 6.9124,
+    "avg_latency_seconds": 2.9374,
+    "max_latency_seconds": 5.2371,
+    "mean_semantic_similarity": 0.6935,
+    "mean_token_coverage": 0.7248,
     "case_results": [
       {
         "question_id": "1",
         "category": "Single Source - ECU-700",
         "question": "What is the maximum operating temperature for the ECU-750?",
         "expected_answer": "The maximum operating temperature for the ECU-750 is +85\u00b0C. The ECU-750 operates in a temperature range of -40\u00b0C to +85\u00b0C.",
-        "agent_answer": "The ECU-750 maximum operating temperature is +85\u00b0C, with a range of -40\u00b0C to +85\u00b0C. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+        "actual_answer": "The maximum operating temperature for the ECU-750 is **+85\u00b0C**. [ECU-700_Series_Manual.md]",
+        "agent_answer": "The maximum operating temperature for the ECU-750 is **+85\u00b0C**. [ECU-700_Series_Manual.md]",
+        "semantic_similarity": 0.7502,
+        "token_coverage": 0.7,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 2.4338,
+        "latency_seconds": 3.8963,
         "sources": [
-          "ECU-700_Series_Manual.md",
-          "ECU-800_Series_Base.md",
-          "ECU-800_Series_Plus.md"
+          "ECU-700_Series_Manual.md"
         ],
         "route_category": "ecu_700_lookup",
-        "key_facts_found": [
-          "+85",
-          "-40"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
-        "confidence": 0.8222,
+        "source_diagnostic": 1,
+        "route_diagnostic": "ecu_700_lookup",
+        "confidence": 0.8667,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -43,24 +42,23 @@
         "category": "Single Source - ECU-800",
         "question": "How much RAM does the ECU-850 have?",
         "expected_answer": "The ECU-850 has 2 GB of LPDDR4 RAM.",
-        "agent_answer": "The ECU-850 has **2 GB LPDDR4** RAM. [ECU-800_Series_Base.md]",
+        "actual_answer": "The ECU-850 has 2 GB LPDDR4 RAM [ECU-800_Series_Base.md].",
+        "agent_answer": "The ECU-850 has 2 GB LPDDR4 RAM [ECU-800_Series_Base.md].",
+        "semantic_similarity": 0.7746,
+        "token_coverage": 1.0,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 1.9088,
+        "latency_seconds": 1.7287,
         "sources": [
           "ECU-800_Series_Base.md"
         ],
         "route_category": "ecu_800_lookup",
-        "key_facts_found": [
-          "2 GB",
-          "LPDDR4"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
+        "source_diagnostic": 1,
+        "route_diagnostic": "ecu_800_lookup",
         "confidence": 0.775,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -68,24 +66,23 @@
         "category": "Single Source - ECU-800 Enhanced",
         "question": "What are the AI capabilities of the ECU-850b?",
         "expected_answer": "The ECU-850b features a dedicated Neural Processing Unit (NPU) capable of 5 TOPS (Tera Operations Per Second) for AI acceleration. This makes it suitable for edge AI workloads.",
-        "agent_answer": "The ECU-850b includes a dedicated Neural Processing Unit (NPU) capable of 5 TOPS for edge AI workloads, supported by 4 GB LPDDR4 RAM [ECU-800_Series_Plus.md].",
+        "actual_answer": "The ECU-850b includes a dedicated Neural Processing Unit (NPU) rated at **5 TOPS** for AI acceleration, along with **4 GB LPDDR4 RAM** and a **1.5 GHz** dual-core Cortex-A53 to support larger models. The NPU is enabled via the command `me-driver-ctl --enable-npu --mode=performance`. [ECU-800_Series_Plus.md]",
+        "agent_answer": "The ECU-850b includes a dedicated Neural Processing Unit (NPU) rated at **5 TOPS** for AI acceleration, along with **4 GB LPDDR4 RAM** and a **1.5 GHz** dual-core Cortex-A53 to support larger models. The NPU is enabled via the command `me-driver-ctl --enable-npu --mode=performance`. [ECU-800_Series_Plus.md]",
+        "semantic_similarity": 0.461,
+        "token_coverage": 0.5238,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 1.4707,
+        "latency_seconds": 2.3677,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
         "route_category": "ecu_850b_lookup",
-        "key_facts_found": [
-          "NPU",
-          "5 TOPS"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
+        "source_diagnostic": 1,
+        "route_diagnostic": "ecu_850b_lookup",
         "confidence": 0.8,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -93,28 +90,24 @@
         "category": "Comparative - Same Series",
         "question": "What are the differences between ECU-850 and ECU-850b?",
         "expected_answer": "The ECU-850b is an enhanced variant of the ECU-850 with three key upgrades: Dedicated AI Accelerator (NPU capable of 5 TOPS), Increased Memory (4 GB LPDDR4 RAM vs 2 GB), Higher Clock Speed (Cortex-A53 cores at 1.5 GHz vs 1.2 GHz).",
-        "agent_answer": "Key differences between ECU-850 and ECU-850b:\n\n- **NPU:** ECU-850b has a dedicated 5 TOPS AI accelerator; ECU-850 does not [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **CPU clock:** ECU-850b runs at **1.5 GHz** vs. 1.2 GHz for ECU-850 [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **RAM:** ECU-850b has **4 GB** LPDDR4; ECU-850 has 2 GB [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **Storage:** ECU-850b uses **32 GB** eMMC; ECU-850 uses 16 GB [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **Power consumption:** ECU-850b draws 550 mA idle / 1.7 A under load vs. 500 mA / 1.5 A for ECU-850 [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n\nAll other features (CAN FD, Ethernet, OS, etc.) remain identical.",
+        "actual_answer": "Based solely on the provided context, the ECU-850b is an enhanced variant of the baseline ECU-850. The specific differences are: - **Processor clock speed**: ECU-850 runs at **1.2 GHz** [ECU-800_Series_Base.md]; ECU-850b runs at **1.5 GHz** [ECU-800_Series_Plus.md]. - **Memory (RAM)**: ECU-850 has **2 GB LPDDR4** [ECU-800_Series_Base.md]; ECU-850b has **4 GB LPDDR4** [ECU-800_Series_Plus.md]. - **Storage**: ECU-850 has **16 GB eMMC** [ECU-800_Series_Base.md]; ECU-850b has **32 GB eMMC** [ECU-800_Series_Plus.md]. - **AI accelerator (NPU)**: ECU-850 does not include a dedicated NPU (AI/ML acceleration is listed as \u201cSee ECU-850b model\u201d) [ECU-800_Series_Base.md]; ECU-850b includes an **NPU with 5 TOPS** [ECU-800_Series_Plus.md]. - **Power consumption**: ECU-850 idle 500mA, under load 1.5A [ECU-800_Series_Base.md]; ECU-850b idle 550mA, under load 1.7A [ECU-800_Series_Plus.md]. All other features (CAN interface, Ethernet, operating temperature range, etc.) are identical between the two models.",
+        "agent_answer": "Based solely on the provided context, the ECU-850b is an enhanced variant of the baseline ECU-850. The specific differences are: - **Processor clock speed**: ECU-850 runs at **1.2 GHz** [ECU-800_Series_Base.md]; ECU-850b runs at **1.5 GHz** [ECU-800_Series_Plus.md]. - **Memory (RAM)**: ECU-850 has **2 GB LPDDR4** [ECU-800_Series_Base.md]; ECU-850b has **4 GB LPDDR4** [ECU-800_Series_Plus.md]. - **Storage**: ECU-850 has **16 GB eMMC** [ECU-800_Series_Base.md]; ECU-850b has **32 GB eMMC** [ECU-800_Series_Plus.md]. - **AI accelerator (NPU)**: ECU-850 does not include a dedicated NPU (AI/ML acceleration is listed as \u201cSee ECU-850b model\u201d) [ECU-800_Series_Base.md]; ECU-850b includes an **NPU with 5 TOPS** [ECU-800_Series_Plus.md]. - **Power consumption**: ECU-850 idle 500mA, under load 1.5A [ECU-800_Series_Base.md]; ECU-850b idle 550mA, under load 1.7A [ECU-800_Series_Plus.md]. All other features (CAN interface, Ethernet, operating temperature range, etc.) are identical between the two models.",
+        "semantic_similarity": 0.414,
+        "token_coverage": 0.6774,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 6.9124,
+        "latency_seconds": 5.2371,
         "sources": [
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
         ],
         "route_category": "comparison",
-        "key_facts_found": [
-          "5 TOPS",
-          "4 GB",
-          "2 GB",
-          "1.5 GHz",
-          "1.2 GHz"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
+        "source_diagnostic": 2,
+        "route_diagnostic": "comparison",
         "confidence": 0.7667,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -122,27 +115,24 @@
         "category": "Comparative - Cross Series",
         "question": "Compare the CAN bus capabilities of ECU-750 and ECU-850.",
         "expected_answer": "The ECU-750 (700 series) has a single channel CAN FD interface with speeds up to 1 Mbps, while the ECU-850 (800 series) features a dual channel CAN FD interface with speeds up to 2 Mbps per channel. The ECU-850 offers significantly better CAN bus performance and redundancy.",
-        "agent_answer": "The ECU-750 has a Single Channel CAN FD interface up to 1 Mbps. The ECU-850 has a Dual Channel CAN FD interface up to 2 Mbps per channel, so ECU-850 provides higher CAN throughput and redundancy. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md.",
+        "actual_answer": "**CAN Bus Capability Comparison:** - **ECU\u2011750:** Single\u2011channel, CAN FD compatible up to **1 Mbps** [ECU-700_Series_Manual.md]. - **ECU\u2011850:** Dual\u2011channel, CAN FD up to **2 Mbps per channel** [ECU-800_Series_Base.md]. The ECU\u2011850 offers two independent CAN FD channels each running at twice the maximum bit rate of the ECU\u2011750\u2019s single channel.",
+        "agent_answer": "**CAN Bus Capability Comparison:** - **ECU\u2011750:** Single\u2011channel, CAN FD compatible up to **1 Mbps** [ECU-700_Series_Manual.md]. - **ECU\u2011850:** Dual\u2011channel, CAN FD up to **2 Mbps per channel** [ECU-800_Series_Base.md]. The ECU\u2011850 offers two independent CAN FD channels each running at twice the maximum bit rate of the ECU\u2011750\u2019s single channel.",
+        "semantic_similarity": 0.7605,
+        "token_coverage": 0.72,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 2.4511,
+        "latency_seconds": 3.3248,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md"
         ],
         "route_category": "comparison",
-        "key_facts_found": [
-          "Single Channel",
-          "1 Mbps",
-          "Dual Channel",
-          "2 Mbps"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
+        "source_diagnostic": 2,
+        "route_diagnostic": "comparison",
         "confidence": 0.82,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -150,24 +140,23 @@
         "category": "Technical Specification",
         "question": "What is the power consumption of the ECU-850b under load?",
         "expected_answer": "The ECU-850b consumes 1.7A under load and 550mA when idle.",
-        "agent_answer": "The ECU-850b power consumption is 1.7A under load and 550mA when idle. Sources: ECU-800_Series_Plus.md.",
+        "actual_answer": "The ECU-850b draws 1.7A under load. [ECU-800_Series_Plus.md]",
+        "agent_answer": "The ECU-850b draws 1.7A under load. [ECU-800_Series_Plus.md]",
+        "semantic_similarity": 0.5963,
+        "token_coverage": 0.6,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 1.9045,
+        "latency_seconds": 1.7639,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
         "route_category": "ecu_850b_lookup",
-        "key_facts_found": [
-          "1.7A",
-          "550mA"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
+        "source_diagnostic": 1,
+        "route_diagnostic": "ecu_850b_lookup",
         "confidence": 0.8,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -175,28 +164,25 @@
         "category": "Feature Availability",
         "question": "Which ECU models support Over-the-Air (OTA) updates?",
         "expected_answer": "OTA updates are supported by the ECU-800 Series (ECU-850 and ECU-850b). The ECU-700 Series (ECU-750) does not support OTA updates, as explicitly stated in its documentation.",
-        "agent_answer": "Based solely on the provided context, the following ECU models support Over-the-Air (OTA) updates:\n\n- **ECU-850** (baseline model of the ECU-800 Series) [ECU-800_Series_Base.md]\n- **ECU-850b** (enhanced variant of the ECU-850) [ECU-800_Series_Plus.md]\n\nThe **ECU-750** (ECU-700 Series) explicitly does **not** support OTA updates [ECU-700_Series_Manual.md].",
+        "actual_answer": "The **ECU-850** (baseline ECU-800 Series) and **ECU-850b** (enhanced variant) support Over-the-Air (OTA) updates. The **ECU-750** (ECU-700 Series) does not support OTA updates. [ECU-800_Series_Base.md] [ECU-800_Series_Plus.md] [ECU-700_Series_Manual.md]",
+        "agent_answer": "The **ECU-850** (baseline ECU-800 Series) and **ECU-850b** (enhanced variant) support Over-the-Air (OTA) updates. The **ECU-750** (ECU-700 Series) does not support OTA updates. [ECU-800_Series_Base.md] [ECU-800_Series_Plus.md] [ECU-700_Series_Manual.md]",
+        "semantic_similarity": 0.8265,
+        "token_coverage": 0.7059,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 3.2027,
+        "latency_seconds": 2.9599,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
         ],
         "route_category": "feature_availability",
-        "key_facts_found": [
-          "ECU-850",
-          "ECU-850b",
-          "ECU-750",
-          "not"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
-        "confidence": 0.8,
+        "source_diagnostic": 3,
+        "route_diagnostic": "feature_availability",
+        "confidence": 0.7556,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -204,27 +190,25 @@
         "category": "Storage Comparison",
         "question": "How does the storage capacity compare across all ECU models?",
         "expected_answer": "Storage capacity varies significantly across the series: ECU-750 (700 series): 2 MB Internal Flash; ECU-850 (800 series): 16 GB eMMC; ECU-850b (800 series): 32 GB eMMC. The 800 series offers substantially more storage than the legacy 700 series.",
-        "agent_answer": "Storage increases across the models: ECU-750 has 2 MB Internal Flash, ECU-850 has 16 GB eMMC, and ECU-850b has 32 GB eMMC. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+        "actual_answer": "Based solely on the provided context, the storage capacity for each ECU model is as follows: - **ECU-750** (legacy): 2 MB Internal Flash [ECU-700_Series_Manual.md] - **ECU-850** (baseline): 16 GB eMMC [ECU-800_Series_Base.md] - **ECU-850b** (AI-enhanced variant): 32 GB eMMC [ECU-800_Series_Plus.md]",
+        "agent_answer": "Based solely on the provided context, the storage capacity for each ECU model is as follows: - **ECU-750** (legacy): 2 MB Internal Flash [ECU-700_Series_Manual.md] - **ECU-850** (baseline): 16 GB eMMC [ECU-800_Series_Base.md] - **ECU-850b** (AI-enhanced variant): 32 GB eMMC [ECU-800_Series_Plus.md]",
+        "semantic_similarity": 0.6509,
+        "token_coverage": 0.75,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 3.0271,
+        "latency_seconds": 2.5341,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
         ],
         "route_category": "comparison",
-        "key_facts_found": [
-          "2 MB",
-          "16 GB",
-          "32 GB"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
-        "confidence": 0.73,
+        "source_diagnostic": 3,
+        "route_diagnostic": "comparison",
+        "confidence": 0.72,
+        "verifier_status": "supported",
         "needs_human_review": false
       },
       {
@@ -232,52 +216,49 @@
         "category": "Operating Environment",
         "question": "Which ECU can operate in the harshest temperature conditions?",
         "expected_answer": "The ECU-850 and ECU-850b (800 series) can operate in the harshest temperature conditions, with an operating range of -40\u00b0C to +105\u00b0C. The ECU-750 (700 series) has a more limited range of -40\u00b0C to +85\u00b0C, making it 20\u00b0C less tolerant at the high end.",
-        "agent_answer": "ECU-850 and ECU-850b operate in the harshest temperature conditions, from -40\u00b0C to +105\u00b0C. ECU-750 is limited to -40\u00b0C to +85\u00b0C. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+        "actual_answer": "Based on the provided specifications, both the **ECU-850** and **ECU-850b** can operate in the harshest temperature conditions, with a range of **-40\u00b0C to +105\u00b0C** [ECU-800_Series_Base.md][ECU-800_Series_Plus.md]. This is a wider range than the ECU-750, which operates from -40\u00b0C to +85\u00b0C [ECU-700_Series_Manual.md].",
+        "agent_answer": "Based on the provided specifications, both the **ECU-850** and **ECU-850b** can operate in the harshest temperature conditions, with a range of **-40\u00b0C to +105\u00b0C** [ECU-800_Series_Base.md][ECU-800_Series_Plus.md]. This is a wider range than the ECU-750, which operates from -40\u00b0C to +85\u00b0C [ECU-700_Series_Manual.md].",
+        "semantic_similarity": 0.8067,
+        "token_coverage": 0.6538,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 3.4417,
+        "latency_seconds": 3.9886,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
         ],
         "route_category": "comparison",
-        "key_facts_found": [
-          "ECU-850",
-          "ECU-850b",
-          "+105",
-          "+85"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
-        "confidence": 0.7444,
-        "needs_human_review": false
+        "source_diagnostic": 3,
+        "route_diagnostic": "comparison",
+        "confidence": 0.6333,
+        "verifier_status": "partially_supported",
+        "needs_human_review": true
       },
       {
         "question_id": "10",
         "category": "Configuration/Usage",
         "question": "How do you enable the NPU on the ECU-850b?",
         "expected_answer": "To enable the NPU on the ECU-850b, use the following driver command: me-driver-ctl --enable-npu --mode=performance",
-        "agent_answer": "To enable the NPU on the ECU-850b, run the driver command:\n```bash\nme-driver-ctl --enable-npu --mode=performance\n```\n[Source: ECU-800_Series_Plus.md]",
+        "actual_answer": "To enable the NPU on the ECU-850b, run the following driver command: ```bash me-driver-ctl --enable-npu --mode=performance ``` [ECU-800_Series_Plus.md]",
+        "agent_answer": "To enable the NPU on the ECU-850b, run the following driver command: ```bash me-driver-ctl --enable-npu --mode=performance ``` [ECU-800_Series_Plus.md]",
+        "semantic_similarity": 0.8944,
+        "token_coverage": 0.9167,
         "passed": true,
         "retriever_mode": "hybrid",
         "used_llm": true,
         "fallback_reason": "",
-        "latency_seconds": 2.0969,
+        "latency_seconds": 1.5731,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
         "route_category": "configuration",
-        "key_facts_found": [
-          "me-driver-ctl --enable-npu --mode=performance"
-        ],
-        "missing_key_facts": [],
-        "source_correct": true,
-        "route_correct": true,
+        "source_diagnostic": 1,
+        "route_diagnostic": "configuration",
         "confidence": 0.7556,
+        "verifier_status": "supported",
         "needs_human_review": false
       }
     ],
@@ -289,26 +270,23 @@
       "category": "Single Source - ECU-700",
       "question": "What is the maximum operating temperature for the ECU-750?",
       "expected_answer": "The maximum operating temperature for the ECU-750 is +85\u00b0C. The ECU-750 operates in a temperature range of -40\u00b0C to +85\u00b0C.",
-      "agent_answer": "The ECU-750 maximum operating temperature is +85\u00b0C, with a range of -40\u00b0C to +85\u00b0C. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+      "actual_answer": "The maximum operating temperature for the ECU-750 is **+85\u00b0C**. [ECU-700_Series_Manual.md]",
+      "agent_answer": "The maximum operating temperature for the ECU-750 is **+85\u00b0C**. [ECU-700_Series_Manual.md]",
+      "semantic_similarity": 0.7502,
+      "token_coverage": 0.7,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 2.4338,
+      "latency_seconds": 3.8963,
       "sources": [
-        "ECU-700_Series_Manual.md",
-        "ECU-800_Series_Base.md",
-        "ECU-800_Series_Plus.md"
+        "ECU-700_Series_Manual.md"
       ],
       "route_category": "ecu_700_lookup",
-      "key_facts_found": [
-        "+85",
-        "-40"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
-      "confidence": 0.8222,
+      "source_diagnostic": 1,
+      "route_diagnostic": "ecu_700_lookup",
+      "confidence": 0.8667,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -316,24 +294,23 @@
       "category": "Single Source - ECU-800",
       "question": "How much RAM does the ECU-850 have?",
       "expected_answer": "The ECU-850 has 2 GB of LPDDR4 RAM.",
-      "agent_answer": "The ECU-850 has **2 GB LPDDR4** RAM. [ECU-800_Series_Base.md]",
+      "actual_answer": "The ECU-850 has 2 GB LPDDR4 RAM [ECU-800_Series_Base.md].",
+      "agent_answer": "The ECU-850 has 2 GB LPDDR4 RAM [ECU-800_Series_Base.md].",
+      "semantic_similarity": 0.7746,
+      "token_coverage": 1.0,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 1.9088,
+      "latency_seconds": 1.7287,
       "sources": [
         "ECU-800_Series_Base.md"
       ],
       "route_category": "ecu_800_lookup",
-      "key_facts_found": [
-        "2 GB",
-        "LPDDR4"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
+      "source_diagnostic": 1,
+      "route_diagnostic": "ecu_800_lookup",
       "confidence": 0.775,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -341,24 +318,23 @@
       "category": "Single Source - ECU-800 Enhanced",
       "question": "What are the AI capabilities of the ECU-850b?",
       "expected_answer": "The ECU-850b features a dedicated Neural Processing Unit (NPU) capable of 5 TOPS (Tera Operations Per Second) for AI acceleration. This makes it suitable for edge AI workloads.",
-      "agent_answer": "The ECU-850b includes a dedicated Neural Processing Unit (NPU) capable of 5 TOPS for edge AI workloads, supported by 4 GB LPDDR4 RAM [ECU-800_Series_Plus.md].",
+      "actual_answer": "The ECU-850b includes a dedicated Neural Processing Unit (NPU) rated at **5 TOPS** for AI acceleration, along with **4 GB LPDDR4 RAM** and a **1.5 GHz** dual-core Cortex-A53 to support larger models. The NPU is enabled via the command `me-driver-ctl --enable-npu --mode=performance`. [ECU-800_Series_Plus.md]",
+      "agent_answer": "The ECU-850b includes a dedicated Neural Processing Unit (NPU) rated at **5 TOPS** for AI acceleration, along with **4 GB LPDDR4 RAM** and a **1.5 GHz** dual-core Cortex-A53 to support larger models. The NPU is enabled via the command `me-driver-ctl --enable-npu --mode=performance`. [ECU-800_Series_Plus.md]",
+      "semantic_similarity": 0.461,
+      "token_coverage": 0.5238,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 1.4707,
+      "latency_seconds": 2.3677,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],
       "route_category": "ecu_850b_lookup",
-      "key_facts_found": [
-        "NPU",
-        "5 TOPS"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
+      "source_diagnostic": 1,
+      "route_diagnostic": "ecu_850b_lookup",
       "confidence": 0.8,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -366,28 +342,24 @@
       "category": "Comparative - Same Series",
       "question": "What are the differences between ECU-850 and ECU-850b?",
       "expected_answer": "The ECU-850b is an enhanced variant of the ECU-850 with three key upgrades: Dedicated AI Accelerator (NPU capable of 5 TOPS), Increased Memory (4 GB LPDDR4 RAM vs 2 GB), Higher Clock Speed (Cortex-A53 cores at 1.5 GHz vs 1.2 GHz).",
-      "agent_answer": "Key differences between ECU-850 and ECU-850b:\n\n- **NPU:** ECU-850b has a dedicated 5 TOPS AI accelerator; ECU-850 does not [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **CPU clock:** ECU-850b runs at **1.5 GHz** vs. 1.2 GHz for ECU-850 [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **RAM:** ECU-850b has **4 GB** LPDDR4; ECU-850 has 2 GB [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **Storage:** ECU-850b uses **32 GB** eMMC; ECU-850 uses 16 GB [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n- **Power consumption:** ECU-850b draws 550 mA idle / 1.7 A under load vs. 500 mA / 1.5 A for ECU-850 [ECU-800_Series_Base.md, ECU-800_Series_Plus.md].\n\nAll other features (CAN FD, Ethernet, OS, etc.) remain identical.",
+      "actual_answer": "Based solely on the provided context, the ECU-850b is an enhanced variant of the baseline ECU-850. The specific differences are: - **Processor clock speed**: ECU-850 runs at **1.2 GHz** [ECU-800_Series_Base.md]; ECU-850b runs at **1.5 GHz** [ECU-800_Series_Plus.md]. - **Memory (RAM)**: ECU-850 has **2 GB LPDDR4** [ECU-800_Series_Base.md]; ECU-850b has **4 GB LPDDR4** [ECU-800_Series_Plus.md]. - **Storage**: ECU-850 has **16 GB eMMC** [ECU-800_Series_Base.md]; ECU-850b has **32 GB eMMC** [ECU-800_Series_Plus.md]. - **AI accelerator (NPU)**: ECU-850 does not include a dedicated NPU (AI/ML acceleration is listed as \u201cSee ECU-850b model\u201d) [ECU-800_Series_Base.md]; ECU-850b includes an **NPU with 5 TOPS** [ECU-800_Series_Plus.md]. - **Power consumption**: ECU-850 idle 500mA, under load 1.5A [ECU-800_Series_Base.md]; ECU-850b idle 550mA, under load 1.7A [ECU-800_Series_Plus.md]. All other features (CAN interface, Ethernet, operating temperature range, etc.) are identical between the two models.",
+      "agent_answer": "Based solely on the provided context, the ECU-850b is an enhanced variant of the baseline ECU-850. The specific differences are: - **Processor clock speed**: ECU-850 runs at **1.2 GHz** [ECU-800_Series_Base.md]; ECU-850b runs at **1.5 GHz** [ECU-800_Series_Plus.md]. - **Memory (RAM)**: ECU-850 has **2 GB LPDDR4** [ECU-800_Series_Base.md]; ECU-850b has **4 GB LPDDR4** [ECU-800_Series_Plus.md]. - **Storage**: ECU-850 has **16 GB eMMC** [ECU-800_Series_Base.md]; ECU-850b has **32 GB eMMC** [ECU-800_Series_Plus.md]. - **AI accelerator (NPU)**: ECU-850 does not include a dedicated NPU (AI/ML acceleration is listed as \u201cSee ECU-850b model\u201d) [ECU-800_Series_Base.md]; ECU-850b includes an **NPU with 5 TOPS** [ECU-800_Series_Plus.md]. - **Power consumption**: ECU-850 idle 500mA, under load 1.5A [ECU-800_Series_Base.md]; ECU-850b idle 550mA, under load 1.7A [ECU-800_Series_Plus.md]. All other features (CAN interface, Ethernet, operating temperature range, etc.) are identical between the two models.",
+      "semantic_similarity": 0.414,
+      "token_coverage": 0.6774,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 6.9124,
+      "latency_seconds": 5.2371,
       "sources": [
         "ECU-800_Series_Base.md",
         "ECU-800_Series_Plus.md"
       ],
       "route_category": "comparison",
-      "key_facts_found": [
-        "5 TOPS",
-        "4 GB",
-        "2 GB",
-        "1.5 GHz",
-        "1.2 GHz"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
+      "source_diagnostic": 2,
+      "route_diagnostic": "comparison",
       "confidence": 0.7667,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -395,27 +367,24 @@
       "category": "Comparative - Cross Series",
       "question": "Compare the CAN bus capabilities of ECU-750 and ECU-850.",
       "expected_answer": "The ECU-750 (700 series) has a single channel CAN FD interface with speeds up to 1 Mbps, while the ECU-850 (800 series) features a dual channel CAN FD interface with speeds up to 2 Mbps per channel. The ECU-850 offers significantly better CAN bus performance and redundancy.",
-      "agent_answer": "The ECU-750 has a Single Channel CAN FD interface up to 1 Mbps. The ECU-850 has a Dual Channel CAN FD interface up to 2 Mbps per channel, so ECU-850 provides higher CAN throughput and redundancy. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md.",
+      "actual_answer": "**CAN Bus Capability Comparison:** - **ECU\u2011750:** Single\u2011channel, CAN FD compatible up to **1 Mbps** [ECU-700_Series_Manual.md]. - **ECU\u2011850:** Dual\u2011channel, CAN FD up to **2 Mbps per channel** [ECU-800_Series_Base.md]. The ECU\u2011850 offers two independent CAN FD channels each running at twice the maximum bit rate of the ECU\u2011750\u2019s single channel.",
+      "agent_answer": "**CAN Bus Capability Comparison:** - **ECU\u2011750:** Single\u2011channel, CAN FD compatible up to **1 Mbps** [ECU-700_Series_Manual.md]. - **ECU\u2011850:** Dual\u2011channel, CAN FD up to **2 Mbps per channel** [ECU-800_Series_Base.md]. The ECU\u2011850 offers two independent CAN FD channels each running at twice the maximum bit rate of the ECU\u2011750\u2019s single channel.",
+      "semantic_similarity": 0.7605,
+      "token_coverage": 0.72,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 2.4511,
+      "latency_seconds": 3.3248,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md"
       ],
       "route_category": "comparison",
-      "key_facts_found": [
-        "Single Channel",
-        "1 Mbps",
-        "Dual Channel",
-        "2 Mbps"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
+      "source_diagnostic": 2,
+      "route_diagnostic": "comparison",
       "confidence": 0.82,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -423,24 +392,23 @@
       "category": "Technical Specification",
       "question": "What is the power consumption of the ECU-850b under load?",
       "expected_answer": "The ECU-850b consumes 1.7A under load and 550mA when idle.",
-      "agent_answer": "The ECU-850b power consumption is 1.7A under load and 550mA when idle. Sources: ECU-800_Series_Plus.md.",
+      "actual_answer": "The ECU-850b draws 1.7A under load. [ECU-800_Series_Plus.md]",
+      "agent_answer": "The ECU-850b draws 1.7A under load. [ECU-800_Series_Plus.md]",
+      "semantic_similarity": 0.5963,
+      "token_coverage": 0.6,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 1.9045,
+      "latency_seconds": 1.7639,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],
       "route_category": "ecu_850b_lookup",
-      "key_facts_found": [
-        "1.7A",
-        "550mA"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
+      "source_diagnostic": 1,
+      "route_diagnostic": "ecu_850b_lookup",
       "confidence": 0.8,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -448,28 +416,25 @@
       "category": "Feature Availability",
       "question": "Which ECU models support Over-the-Air (OTA) updates?",
       "expected_answer": "OTA updates are supported by the ECU-800 Series (ECU-850 and ECU-850b). The ECU-700 Series (ECU-750) does not support OTA updates, as explicitly stated in its documentation.",
-      "agent_answer": "Based solely on the provided context, the following ECU models support Over-the-Air (OTA) updates:\n\n- **ECU-850** (baseline model of the ECU-800 Series) [ECU-800_Series_Base.md]\n- **ECU-850b** (enhanced variant of the ECU-850) [ECU-800_Series_Plus.md]\n\nThe **ECU-750** (ECU-700 Series) explicitly does **not** support OTA updates [ECU-700_Series_Manual.md].",
+      "actual_answer": "The **ECU-850** (baseline ECU-800 Series) and **ECU-850b** (enhanced variant) support Over-the-Air (OTA) updates. The **ECU-750** (ECU-700 Series) does not support OTA updates. [ECU-800_Series_Base.md] [ECU-800_Series_Plus.md] [ECU-700_Series_Manual.md]",
+      "agent_answer": "The **ECU-850** (baseline ECU-800 Series) and **ECU-850b** (enhanced variant) support Over-the-Air (OTA) updates. The **ECU-750** (ECU-700 Series) does not support OTA updates. [ECU-800_Series_Base.md] [ECU-800_Series_Plus.md] [ECU-700_Series_Manual.md]",
+      "semantic_similarity": 0.8265,
+      "token_coverage": 0.7059,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 3.2027,
+      "latency_seconds": 2.9599,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
         "ECU-800_Series_Plus.md"
       ],
       "route_category": "feature_availability",
-      "key_facts_found": [
-        "ECU-850",
-        "ECU-850b",
-        "ECU-750",
-        "not"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
-      "confidence": 0.8,
+      "source_diagnostic": 3,
+      "route_diagnostic": "feature_availability",
+      "confidence": 0.7556,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -477,27 +442,25 @@
       "category": "Storage Comparison",
       "question": "How does the storage capacity compare across all ECU models?",
       "expected_answer": "Storage capacity varies significantly across the series: ECU-750 (700 series): 2 MB Internal Flash; ECU-850 (800 series): 16 GB eMMC; ECU-850b (800 series): 32 GB eMMC. The 800 series offers substantially more storage than the legacy 700 series.",
-      "agent_answer": "Storage increases across the models: ECU-750 has 2 MB Internal Flash, ECU-850 has 16 GB eMMC, and ECU-850b has 32 GB eMMC. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+      "actual_answer": "Based solely on the provided context, the storage capacity for each ECU model is as follows: - **ECU-750** (legacy): 2 MB Internal Flash [ECU-700_Series_Manual.md] - **ECU-850** (baseline): 16 GB eMMC [ECU-800_Series_Base.md] - **ECU-850b** (AI-enhanced variant): 32 GB eMMC [ECU-800_Series_Plus.md]",
+      "agent_answer": "Based solely on the provided context, the storage capacity for each ECU model is as follows: - **ECU-750** (legacy): 2 MB Internal Flash [ECU-700_Series_Manual.md] - **ECU-850** (baseline): 16 GB eMMC [ECU-800_Series_Base.md] - **ECU-850b** (AI-enhanced variant): 32 GB eMMC [ECU-800_Series_Plus.md]",
+      "semantic_similarity": 0.6509,
+      "token_coverage": 0.75,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 3.0271,
+      "latency_seconds": 2.5341,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
         "ECU-800_Series_Plus.md"
       ],
       "route_category": "comparison",
-      "key_facts_found": [
-        "2 MB",
-        "16 GB",
-        "32 GB"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
-      "confidence": 0.73,
+      "source_diagnostic": 3,
+      "route_diagnostic": "comparison",
+      "confidence": 0.72,
+      "verifier_status": "supported",
       "needs_human_review": false
     },
     {
@@ -505,52 +468,49 @@
       "category": "Operating Environment",
       "question": "Which ECU can operate in the harshest temperature conditions?",
       "expected_answer": "The ECU-850 and ECU-850b (800 series) can operate in the harshest temperature conditions, with an operating range of -40\u00b0C to +105\u00b0C. The ECU-750 (700 series) has a more limited range of -40\u00b0C to +85\u00b0C, making it 20\u00b0C less tolerant at the high end.",
-      "agent_answer": "ECU-850 and ECU-850b operate in the harshest temperature conditions, from -40\u00b0C to +105\u00b0C. ECU-750 is limited to -40\u00b0C to +85\u00b0C. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+      "actual_answer": "Based on the provided specifications, both the **ECU-850** and **ECU-850b** can operate in the harshest temperature conditions, with a range of **-40\u00b0C to +105\u00b0C** [ECU-800_Series_Base.md][ECU-800_Series_Plus.md]. This is a wider range than the ECU-750, which operates from -40\u00b0C to +85\u00b0C [ECU-700_Series_Manual.md].",
+      "agent_answer": "Based on the provided specifications, both the **ECU-850** and **ECU-850b** can operate in the harshest temperature conditions, with a range of **-40\u00b0C to +105\u00b0C** [ECU-800_Series_Base.md][ECU-800_Series_Plus.md]. This is a wider range than the ECU-750, which operates from -40\u00b0C to +85\u00b0C [ECU-700_Series_Manual.md].",
+      "semantic_similarity": 0.8067,
+      "token_coverage": 0.6538,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 3.4417,
+      "latency_seconds": 3.9886,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
         "ECU-800_Series_Plus.md"
       ],
       "route_category": "comparison",
-      "key_facts_found": [
-        "ECU-850",
-        "ECU-850b",
-        "+105",
-        "+85"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
-      "confidence": 0.7444,
-      "needs_human_review": false
+      "source_diagnostic": 3,
+      "route_diagnostic": "comparison",
+      "confidence": 0.6333,
+      "verifier_status": "partially_supported",
+      "needs_human_review": true
     },
     {
       "question_id": "10",
       "category": "Configuration/Usage",
       "question": "How do you enable the NPU on the ECU-850b?",
       "expected_answer": "To enable the NPU on the ECU-850b, use the following driver command: me-driver-ctl --enable-npu --mode=performance",
-      "agent_answer": "To enable the NPU on the ECU-850b, run the driver command:\n```bash\nme-driver-ctl --enable-npu --mode=performance\n```\n[Source: ECU-800_Series_Plus.md]",
+      "actual_answer": "To enable the NPU on the ECU-850b, run the following driver command: ```bash me-driver-ctl --enable-npu --mode=performance ``` [ECU-800_Series_Plus.md]",
+      "agent_answer": "To enable the NPU on the ECU-850b, run the following driver command: ```bash me-driver-ctl --enable-npu --mode=performance ``` [ECU-800_Series_Plus.md]",
+      "semantic_similarity": 0.8944,
+      "token_coverage": 0.9167,
       "passed": true,
       "retriever_mode": "hybrid",
       "used_llm": true,
       "fallback_reason": "",
-      "latency_seconds": 2.0969,
+      "latency_seconds": 1.5731,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],
       "route_category": "configuration",
-      "key_facts_found": [
-        "me-driver-ctl --enable-npu --mode=performance"
-      ],
-      "missing_key_facts": [],
-      "source_correct": true,
-      "route_correct": true,
+      "source_diagnostic": 1,
+      "route_diagnostic": "configuration",
       "confidence": 0.7556,
+      "verifier_status": "supported",
       "needs_human_review": false
     }
   ]

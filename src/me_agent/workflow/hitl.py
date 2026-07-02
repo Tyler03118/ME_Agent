@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from me_agent.schemas import HumanReviewDecision, VerifierStatus
+from me_agent.core.schemas import HumanReviewDecision, VerifierStatus
 
 
 def human_review_decision(

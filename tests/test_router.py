@@ -1,4 +1,4 @@
-from me_agent.router import DeterministicRouter
+from me_agent.workflow.router import DeterministicRouter
 
 
 def test_router_classifies_ecu_750_lookup() -> None:
@@ -9,9 +9,7 @@ def test_router_classifies_ecu_750_lookup() -> None:
 
 
 def test_router_classifies_cross_document_comparison() -> None:
-    decision = DeterministicRouter().route(
-        "Compare the CAN bus capabilities of ECU-750 and ECU-850."
-    )
+    decision = DeterministicRouter().route("Compare the CAN bus capabilities of ECU-750 and ECU-850.")
 
     assert decision.category == "comparison"
     assert "ECU-700_Series_Manual.md" in decision.required_sources
@@ -23,3 +21,10 @@ def test_router_classifies_npu_configuration() -> None:
 
     assert decision.category == "configuration"
     assert "ECU-800_Series_Plus.md" in decision.required_sources
+
+
+def test_router_sends_non_ecu_questions_to_general() -> None:
+    decision = DeterministicRouter().route("今天天气如何")
+
+    assert decision.category == "general"
+    assert decision.required_sources == ()

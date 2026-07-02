@@ -1,12 +1,13 @@
 # Scalability Strategy
 
-The first corpus is intentionally small, so an in-memory fallback retriever is
-sufficient. Scaling to thousands of manuals should add:
+The current corpus is small, so the default implementation keeps retrieval local
+and in memory. The architecture still separates preprocessing, embedding, vector
+indexing, retrieval, generation, and evaluation so each layer can scale later.
 
-- Durable document indexing and versioned metadata.
-- Incremental re-indexing for changed manuals.
-- Embedding-backed vector retrieval with deterministic keyword fallback.
-- Source-level filters by product family, model, document version, and section.
-- Offline evaluation gates before publishing a new index.
-- Production monitoring for latency, retrieval misses, source coverage, and
-  human-review rates.
+Planned scaling steps:
+
+- Persist chunk metadata and embeddings outside process memory.
+- Move FAISS or equivalent vector indexing to a managed service when corpus size grows.
+- Add reranking after initial retrieval if precision becomes a bottleneck.
+- Track retrieval misses, latency, fallback rate, and human-review rate in production metrics.
+- Add a larger evaluation set with regression buckets for comparisons, missing context, and conflicting documents.

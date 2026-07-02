@@ -1,5 +1,5 @@
-from me_agent.confidence import compute_confidence
-from me_agent.hitl import human_review_decision
+from me_agent.workflow.confidence import compute_confidence
+from me_agent.workflow.hitl import human_review_decision
 
 
 def test_confidence_uses_weighted_formula() -> None:

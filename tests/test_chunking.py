@@ -1,5 +1,5 @@
-from me_agent.chunking import MarkdownChunker
-from me_agent.schemas import ManualDocument
+from me_agent.ingestion.chunking import MarkdownChunker
+from me_agent.core.schemas import ManualDocument
 
 
 def test_chunker_creates_chunks_and_preserves_metadata() -> None:
@@ -27,7 +27,7 @@ def test_chunker_rejects_invalid_overlap() -> None:
 
 
 def test_chunk_documents_returns_standardized_chunk_dicts() -> None:
-    from me_agent.chunking import chunk_documents
+    from me_agent.ingestion.chunking import chunk_documents
 
     documents = [
         {

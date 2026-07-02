@@ -1,4 +1,4 @@
-from me_agent.graph import EngineeringAssistant
+from me_agent.workflow.graph import EngineeringAssistant
 
 
 def test_graph_returns_structured_response_for_empty_corpus() -> None:
