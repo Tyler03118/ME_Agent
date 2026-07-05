@@ -58,7 +58,7 @@ Package layout:
 - `me_agent.core`: runtime configuration and shared dataclass schemas.
 - `me_agent.ingestion`: Markdown loading and deterministic chunk preprocessing.
 - `me_agent.retrieval`: embeddings, FAISS/numpy vector store, and keyword/vector/hybrid retrievers.
-- `me_agent.generation`: DeepSeek generation, grounded fallback, prompts, and answer verification.
+- `me_agent.generation`: DeepSeek generation, grounded fallback, prompt construction, and answer verification.
 - `me_agent.workflow`: LangGraph workflow, routing, confidence, and human-review branching.
 - `me_agent.evaluation`: Expected_Answer similarity, token coverage, latency, and MLflow eval logging.
 - `me_agent.tracking`: MLflow pyfunc model and reusable model logging helpers.
@@ -106,7 +106,7 @@ me-agent "How's the weather today?"
 ME_AGENT_RETRIEVER_MODE=keyword me-agent-run-eval
 ME_AGENT_RETRIEVER_MODE=vector me-agent-run-eval
 ME_AGENT_RETRIEVER_MODE=hybrid me-agent-run-eval
-me-agent-render-eval-report eval_results.json reports/eval_report.html
+me-agent-render-eval-report reports/eval_results.json reports/eval_report.html
 me-agent-log-model
 me-agent-load-model
 ```
@@ -144,7 +144,7 @@ Existing JSON artifacts can be re-rendered without rerunning the model:
 
 ```bash
 python scripts/render_eval_report.py \
-  eval_results.json \
+  reports/eval_results.json \
   reports/eval_report.html
 ```
 
@@ -157,7 +157,7 @@ Representative live results from the latest approved DeepSeek run on 2026-07-05:
 
 Offline no-key evaluation is a smoke/degradation check for the generic
 extractive fallback path, not the main challenge scoring path. Read its current
-result from `eval_results_offline.json` after running the validation script. The
+result from `reports/eval_results_offline.json` after running the validation script. The
 stress run includes two intentional out-of-scope cases and one verifier-triggered
 grounded fallback for prompt-injection defense while still passing
 fact/source/route checks.

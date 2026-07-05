@@ -10,8 +10,8 @@
     "fallback_reasons": {
       "missing_deepseek_client_or_key": 10
     },
-    "avg_latency_seconds": 0.0029,
-    "max_latency_seconds": 0.0062,
+    "avg_latency_seconds": 0.0031,
+    "max_latency_seconds": 0.0107,
     "mean_semantic_similarity": 0.5985,
     "mean_token_coverage": 0.6181,
     "mean_required_fact_recall": 0.6623,
@@ -37,7 +37,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0062,
+        "latency_seconds": 0.0107,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
@@ -70,7 +70,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0025,
+        "latency_seconds": 0.0018,
         "sources": [
           "ECU-800_Series_Base.md"
         ],
@@ -101,7 +101,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0018,
+        "latency_seconds": 0.002,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
@@ -132,7 +132,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0024,
+        "latency_seconds": 0.0022,
         "sources": [
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
@@ -164,7 +164,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0026,
+        "latency_seconds": 0.0022,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md"
@@ -196,7 +196,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0021,
+        "latency_seconds": 0.0017,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
@@ -227,7 +227,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0034,
+        "latency_seconds": 0.0031,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
@@ -260,7 +260,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0028,
+        "latency_seconds": 0.003,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
@@ -293,7 +293,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0031,
+        "latency_seconds": 0.0027,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
@@ -326,7 +326,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0017,
+        "latency_seconds": 0.0016,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
@@ -359,7 +359,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0024,
+        "latency_seconds": 0.0022,
         "sources": [
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
@@ -394,7 +394,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0062,
+      "latency_seconds": 0.0107,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
@@ -427,7 +427,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0025,
+      "latency_seconds": 0.0018,
       "sources": [
         "ECU-800_Series_Base.md"
       ],
@@ -458,7 +458,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0018,
+      "latency_seconds": 0.002,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],
@@ -489,7 +489,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0024,
+      "latency_seconds": 0.0022,
       "sources": [
         "ECU-800_Series_Base.md",
         "ECU-800_Series_Plus.md"
@@ -521,7 +521,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0026,
+      "latency_seconds": 0.0022,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md"
@@ -553,7 +553,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0021,
+      "latency_seconds": 0.0017,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],
@@ -584,7 +584,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0034,
+      "latency_seconds": 0.0031,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
@@ -617,7 +617,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0028,
+      "latency_seconds": 0.003,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
@@ -650,7 +650,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0031,
+      "latency_seconds": 0.0027,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
@@ -683,7 +683,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0017,
+      "latency_seconds": 0.0016,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],

@@ -74,7 +74,7 @@ The regression loop has three layers:
 1. Golden dataset: run `python scripts/run_eval.py` on the CSV questions and log
    accuracy, latency, `used_llm_rate`, fallback counts, similarity, and token
    coverage to MLflow.
-2. Artifact review: inspect `eval_results.json` or render it as a visual HTML
+2. Artifact review: inspect `reports/eval_results.json` or render it as a visual HTML
    report for representative question, expected answer, agent answer, sources,
    confidence, and route diagnostics.
 3. SME sampling: manually review low-confidence answers, comparison questions,
@@ -95,7 +95,7 @@ python scripts/run_eval.py \
   --html-report reports/stress_eval_report.html
 
 python scripts/render_eval_report.py \
-  eval_results.json \
+  reports/eval_results.json \
   reports/eval_report.html
 ```
 

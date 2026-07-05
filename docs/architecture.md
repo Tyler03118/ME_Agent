@@ -67,7 +67,7 @@ query taxonomy becomes ambiguous or much broader.
 - `me_agent.core`: configuration and shared dataclass schemas.
 - `me_agent.ingestion`: Markdown loading and chunk creation.
 - `me_agent.retrieval`: embedding backends, FAISS/numpy vector indexing, and retriever modes.
-- `me_agent.generation`: live DeepSeek calls, extractive fallback, prompts, and answer verification.
+- `me_agent.generation`: live DeepSeek calls, extractive fallback, prompt construction, and answer verification.
 - `me_agent.workflow`: LangGraph graph, deterministic routing, confidence, and HITL decisions.
 - `me_agent.evaluation`: generic scoring and MLflow evaluation metric logging.
 - `me_agent.tracking`: MLflow pyfunc model and reusable model logging helpers.

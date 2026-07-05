@@ -1,5 +1,6 @@
 __pycache__/
 *.py[cod]
+.DS_Store
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -16,3 +17,4 @@ interview_showcase.html
 .venv/
 zijitest/
 docs/code_reference.html
+docs/interview_code_walkthrough.html

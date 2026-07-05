@@ -111,8 +111,8 @@ def _eval_parser() -> ArgumentParser:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("eval_results.json"),
-        help="JSON artifact path. Defaults to eval_results.json.",
+        default=Path("reports/eval_results.json"),
+        help="JSON artifact path. Defaults to reports/eval_results.json.",
     )
     parser.add_argument(
         "--html-report",

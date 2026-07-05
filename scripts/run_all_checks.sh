@@ -38,7 +38,7 @@ python -m compileall -q src tests scripts
 echo "== Offline evaluation smoke test =="
 ME_AGENT_API_KEY_ENV_VAR=ME_AGENT_MISSING_API_KEY python scripts/run_eval.py \
   --eval-path data/eval/test-questions.csv \
-  --output eval_results_offline.json \
+  --output reports/eval_results_offline.json \
   --title "ME Agent Offline Evaluation"
 
 if [[ "${RUN_LIVE_EVAL}" == "1" ]]; then
@@ -50,7 +50,7 @@ if [[ "${RUN_LIVE_EVAL}" == "1" ]]; then
   echo "== Live default evaluation =="
   python scripts/run_eval.py \
     --eval-path data/eval/test-questions.csv \
-    --output eval_results.json \
+    --output reports/eval_results.json \
     --html-report reports/eval_report.html \
     --title "ME Agent Evaluation Report"
 
@@ -66,7 +66,7 @@ if [[ "${RUN_LIVE_EVAL}" == "1" ]]; then
 import json
 from pathlib import Path
 
-for path in [Path("eval_results.json"), Path("reports/stress_eval_results.json")]:
+for path in [Path("reports/eval_results.json"), Path("reports/stress_eval_results.json")]:
     payload = json.loads(path.read_text())
     summary = payload.get("summary", payload)
     print(
