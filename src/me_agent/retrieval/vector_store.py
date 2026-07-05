@@ -9,7 +9,12 @@ from me_agent.core.schemas import ManualChunk, RetrievalResult
 
 
 class VectorStore:
-    """Build a vector index once and search it for each query."""
+    """Build a vector index once and search it for each query.
+
+    FAISS is used when available for fast inner-product search. The numpy path is
+    kept as a first-class fallback and is also used when source filtering is
+    requested, because FAISS does not know about per-chunk metadata.
+    """
 
     def __init__(
         self,
@@ -18,6 +23,8 @@ class VectorStore:
         embedding_model: EmbeddingModel,
         index=None,
     ) -> None:
+        """Store vectors, chunks, embedding model, and optional FAISS index."""
+
         self.chunks = chunks
         self.vectors = vectors.astype(np.float32)
         self.embedding_model = embedding_model
@@ -54,6 +61,8 @@ class VectorStore:
         if not candidate_indices:
             return []
         if self.index is not None and required_sources is None:
+            # Fast path: FAISS can search the full corpus directly when no
+            # metadata filter is needed.
             scores, indices = self.index.search(
                 query_vector.astype(np.float32),
                 min(top_k, len(self.chunks)),
@@ -64,6 +73,8 @@ class VectorStore:
                 if index >= 0
             ]
         else:
+            # Filtered path: apply source constraints in Python, then score the
+            # smaller candidate matrix with the same normalized embeddings.
             candidate_vectors = self.vectors[candidate_indices]
             scores = candidate_vectors @ query_vector[0]
             order = np.argsort(scores)[::-1][:top_k]
@@ -77,6 +88,8 @@ class VectorStore:
         ]
 
     def _candidate_indices(self, required_sources: set[str] | None) -> list[int]:
+        """Return vector row indices allowed by source constraints."""
+
         if not required_sources:
             return list(range(len(self.chunks)))
         return [
@@ -87,6 +100,8 @@ class VectorStore:
 
 
 def _build_faiss_index(vectors: np.ndarray):
+    """Build a FAISS inner-product index when FAISS and vectors are available."""
+
     try:
         import faiss  # pylint: disable=import-outside-toplevel
     except ImportError:

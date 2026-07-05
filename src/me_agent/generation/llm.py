@@ -28,9 +28,16 @@ class GenerationResult:
 
 
 class DeepSeekAnswerGenerator:
-    """Generate grounded answers with DeepSeek, falling back to extraction."""
+    """Generate grounded answers with DeepSeek, falling back to extraction.
+
+    The generator is deliberately stateless. It builds a client only when the
+    configured API key is available, which keeps offline tests and no-key demos on
+    the deterministic extractive path.
+    """
 
     def __init__(self, config: AgentConfig) -> None:
+        """Store runtime configuration used for client construction."""
+
         self.config = config
 
     def generate(
@@ -61,6 +68,9 @@ class DeepSeekAnswerGenerator:
                 if content:
                     return GenerationResult(content, used_llm=True)
             except Exception as exc:  # pylint: disable=broad-exception-caught
+                # Provider failures should not crash the graph. The response
+                # records the exception type so evaluation and MLflow artifacts
+                # can distinguish missing-key, timeout, and other fallback paths.
                 return GenerationResult(
                     synthesize_deterministic(question, retrieved_context),
                     used_llm=False,
@@ -74,6 +84,8 @@ class DeepSeekAnswerGenerator:
         )
 
     def _build_client(self):
+        """Create a LangChain ChatOpenAI client when DeepSeek config is present."""
+
         api_key = os.getenv(self.config.api_key_env_var)
         if not api_key:
             return None
@@ -95,7 +107,12 @@ def synthesize_deterministic(
     question: str,
     retrieved_context: Sequence[RetrievalResult],
 ) -> str:
-    """Create a short extractive answer from retrieved context only."""
+    """Create a short extractive answer from retrieved context only.
+
+    This fallback is corpus-agnostic: it ranks sentences by overlap with the
+    question plus the retriever score, then appends source filenames. It is meant
+    to preserve grounded behavior when the live model is unavailable.
+    """
 
     sentences = _ranked_sentences(question, retrieved_context)
     if not sentences:
@@ -108,6 +125,8 @@ def _ranked_sentences(
     question: str,
     retrieved_context: Sequence[RetrievalResult],
 ) -> list[tuple[str, float]]:
+    """Rank candidate context sentences for deterministic fallback synthesis."""
+
     query_tokens = set(_content_tokens(question))
     ranked: list[tuple[str, float]] = []
     seen: set[str] = set()
@@ -127,6 +146,8 @@ def _ranked_sentences(
 
 
 def _split_sentences(text: str) -> list[str]:
+    """Split Markdown text into sentence-like facts and table-row facts."""
+
     sentences: list[str] = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -143,6 +164,8 @@ def _split_sentences(text: str) -> list[str]:
 
 
 def _content_tokens(text: str) -> list[str]:
+    """Return question/content tokens useful for fallback ranking."""
+
     return [
         token
         for token in tokenize(text)
@@ -151,6 +174,8 @@ def _content_tokens(text: str) -> list[str]:
 
 
 def _normalize_model_text(answer: str) -> str:
+    """Normalize model text whitespace without changing answer content."""
+
     return " ".join(answer.replace(" ", " ").replace(" ", " ").split())
 
 
@@ -159,6 +184,8 @@ def _build_prompt(
     route: RouteDecision,
     retrieved_context: Sequence[RetrievalResult],
 ) -> str:
+    """Build a compact prompt that separates evidence lines from full context."""
+
     context = "\n\n".join(
         f"SOURCE: {result.chunk.metadata.get('source')}\n{result.chunk.content}"
         for result in retrieved_context
@@ -166,7 +193,9 @@ def _build_prompt(
     evidence = "\n".join(_evidence_lines(question, retrieved_context))
     route_instruction = (
         "For comparison or feature-availability questions, compare every relevant "
-        "source and model present in the evidence. Prefer explicit specification "
+        "source and model present in the evidence. For difference questions, lead "
+        "with the key changed specifications, keep the answer concise, and avoid "
+        "exhaustive tables unless the user asks for one. Prefer explicit specification "
         "table rows over inheritance statements or summaries."
         if route.category in {"comparison", "feature_availability"}
         else "Prefer exact specification values from evidence lines and table rows."
@@ -188,6 +217,8 @@ def _evidence_lines(
     *,
     limit: int = 32,
 ) -> list[str]:
+    """Surface the most relevant rows/sentences before the full retrieved context."""
+
     query_tokens = set(_content_tokens(question))
     scored: list[tuple[float, str]] = []
     seen: set[str] = set()
@@ -208,6 +239,8 @@ def _evidence_lines(
 
 
 def _sources(retrieved_context: Sequence[RetrievalResult]) -> tuple[str, ...]:
+    """Return unique source filenames from retrieved context."""
+
     seen: list[str] = []
     for result in retrieved_context:
         source = result.chunk.metadata.get("source")
@@ -217,6 +250,8 @@ def _sources(retrieved_context: Sequence[RetrievalResult]) -> tuple[str, ...]:
 
 
 def _with_sources(answer: str, sources: tuple[str, ...]) -> str:
+    """Append source filenames to deterministic fallback answers."""
+
     if not sources:
         return answer
     return f"{answer} Sources: {', '.join(sources)}."

@@ -32,6 +32,7 @@ dev = [
 [project.scripts]
 me-agent = "me_agent.cli:ask_cli"
 me-agent-run-eval = "me_agent.cli:run_eval_cli"
+me-agent-render-eval-report = "me_agent.cli:render_eval_report_cli"
 me-agent-log-model = "me_agent.cli:log_model_cli"
 me-agent-load-model = "me_agent.cli:load_model_cli"
 

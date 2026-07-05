@@ -5,7 +5,7 @@ from langgraph.graph.state import CompiledStateGraph
 from me_agent.core.config import AgentConfig
 from me_agent.evaluation import evaluate_cases, load_evaluation_cases, summarize_evaluation
 from me_agent.workflow.graph import EngineeringAssistant
-from me_agent.generation.llm import DeepSeekAnswerGenerator
+from me_agent.generation.llm import DeepSeekAnswerGenerator, _build_prompt
 from me_agent.workflow.router import ECU_700_SOURCE, ECU_800_BASE_SOURCE
 from me_agent.core.schemas import ManualChunk, RetrievalResult
 
@@ -83,6 +83,27 @@ def test_deepseek_output_is_not_overwritten(monkeypatch) -> None:
 
     assert result.used_llm is True
     assert result.answer == "Live model answer with custom wording."
+
+
+def test_comparison_prompt_prioritizes_key_differences() -> None:
+    assistant = _assistant()
+    route = assistant.router.route("What are the differences between ECU-850 and ECU-850b?")
+    prompt = _build_prompt(
+        "What are the differences between ECU-850 and ECU-850b?",
+        route,
+        [
+            RetrievalResult(
+                ManualChunk(
+                    content="ECU-850 has 2 GB RAM. ECU-850b has 4 GB RAM and a 5 TOPS NPU.",
+                    metadata={"source": "manual.md"},
+                ),
+                0.9,
+            )
+        ],
+    )
+
+    assert "changed specifications" in prompt
+    assert "avoid exhaustive tables" in prompt
 
 
 def test_low_confidence_retrieval_triggers_one_broaden_retry() -> None:

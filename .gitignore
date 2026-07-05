@@ -12,3 +12,5 @@ build/
 mlruns/
 mlflow.db
 outputs/
+interview_showcase.html
+.venv/

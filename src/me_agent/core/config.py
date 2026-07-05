@@ -10,6 +10,15 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
+def _project_relative_path(value: str | Path) -> Path:
+    """Resolve relative project config paths against the package project root."""
+
+    path = Path(value).expanduser()
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+
 def _load_dotenv_if_available() -> None:
     """Load a local .env file when python-dotenv is installed."""
 
@@ -30,8 +39,6 @@ class AgentConfig:  # pylint: disable=too-many-instance-attributes
     chunk_overlap: int = 120
     top_k: int = 8
     retriever_mode: str = "hybrid"
-    keyword_weight: float = 0.5
-    vector_weight: float = 0.5
     confidence_threshold: float = 0.65
     retrieval_retry_threshold: float = 0.08
     eval_pass_threshold: float = 0.45
@@ -51,18 +58,16 @@ class AgentConfig:  # pylint: disable=too-many-instance-attributes
         _load_dotenv_if_available()
         defaults = cls()
         return cls(
-            manual_dir=Path(os.getenv("ME_AGENT_MANUAL_DIR", defaults.manual_dir.as_posix())),
-            eval_path=Path(os.getenv("ME_AGENT_EVAL_PATH", defaults.eval_path.as_posix())),
+            manual_dir=_project_relative_path(
+                os.getenv("ME_AGENT_MANUAL_DIR", defaults.manual_dir.as_posix())
+            ),
+            eval_path=_project_relative_path(
+                os.getenv("ME_AGENT_EVAL_PATH", defaults.eval_path.as_posix())
+            ),
             chunk_size=int(os.getenv("ME_AGENT_CHUNK_SIZE", str(defaults.chunk_size))),
             chunk_overlap=int(os.getenv("ME_AGENT_CHUNK_OVERLAP", str(defaults.chunk_overlap))),
             top_k=int(os.getenv("ME_AGENT_TOP_K", str(defaults.top_k))),
             retriever_mode=os.getenv("ME_AGENT_RETRIEVER_MODE", defaults.retriever_mode),
-            keyword_weight=float(
-                os.getenv("ME_AGENT_KEYWORD_WEIGHT", str(defaults.keyword_weight))
-            ),
-            vector_weight=float(
-                os.getenv("ME_AGENT_VECTOR_WEIGHT", str(defaults.vector_weight))
-            ),
             confidence_threshold=float(
                 os.getenv("ME_AGENT_CONFIDENCE_THRESHOLD", str(defaults.confidence_threshold))
             ),

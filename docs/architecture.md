@@ -46,6 +46,12 @@ graph TD;
 
 Flow summary:
 
+The router is deterministic rather than LLM-based. This is intentional for the
+challenge corpus: model names, ECU families, comparison terms, and configuration
+questions are explicit, so rule routing gives lower latency, lower cost, easier
+unit testing, and reproducible behavior. An LLM router is a future option if the
+query taxonomy becomes ambiguous or much broader.
+
 1. `validate_input` rejects empty questions.
 2. `route_query` routes ECU-manual questions and sends unrelated questions to `general`.
 3. `out_of_scope` returns a direct scope response without retrieval.
@@ -77,17 +83,27 @@ The root package intentionally stays thin: it exports `AgentConfig` and
 - `hybrid`: keyword results first, vector results second, deduplicated by chunk id.
 
 Reranking is intentionally left as future work so the current system remains easy
-to inspect and test.
+to inspect and test. Hybrid mode is a deterministic keyword-first merge, so there
+are no unused weighting knobs in configuration.
+
+## Chunking Trade-Off
+
+Current chunking is deterministic character-window splitting with overlap. This
+keeps preprocessing simple and reproducible for the small Markdown manuals, but
+it can split Markdown tables across chunks. The generation prompt and comparison
+retrieval depth compensate for the current corpus. For larger or more table-heavy
+manual sets, the next step is Markdown-aware section/table chunking that preserves
+headings and table rows as atomic units.
 
 ## Evaluation Strategy
 
 Evaluation uses `Expected_Answer` from the CSV and computes semantic similarity
-plus token coverage. Route and source diagnostics are still written for debugging,
-but they are not the primary pass/fail criteria. This avoids circular scoring
-based on question ids or hardcoded key facts.
+plus token coverage. Route and source diagnostics are written for debugging and
+for enhanced stress cases with explicit expected-route and expected-source
+fields.
 
 ## MLflow Packaging
 
 The pyfunc model accepts strings, lists of strings, or DataFrame-like inputs with
-a `question` column. Model logging includes a signature, input example, full
+a `question` column. Model logging includes a signature, input example, package code paths, full
 resolvable pip requirements, and the manuals/evaluation CSV as artifacts.

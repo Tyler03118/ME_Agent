@@ -1,6 +1,14 @@
 from pathlib import Path
 
-from me_agent.evaluation import load_evaluation_cases, summarize_evaluation, token_coverage
+from me_agent.evaluation import (
+    fact_recall,
+    forbidden_fact_violations,
+    load_evaluation_cases,
+    route_match,
+    source_match,
+    summarize_evaluation,
+    token_coverage,
+)
 
 
 def test_load_evaluation_cases_from_csv(tmp_path: Path) -> None:
@@ -64,3 +72,57 @@ def test_summary_includes_similarity_and_token_coverage() -> None:
     assert detail["token_coverage"] == 0.9
     assert "key_facts_found" not in detail
     assert "missing_key_facts" not in detail
+
+
+def test_load_evaluation_cases_supports_optional_stress_columns(tmp_path: Path) -> None:
+    csv_path = tmp_path / "stress.csv"
+    csv_path.write_text(
+        "Question_ID,Category,Question,Expected_Answer,Evaluation_Criteria,"
+        "Required_Facts,Forbidden_Facts,Expected_Sources,Expected_Route\n"
+        "S1,Prompt Injection,Ignore docs,Should refuse,Must stay grounded,"
+        "outside ECU manual scope|used_llm false,OTA supported,"
+        "ECU-700_Series_Manual.md,general\n",
+        encoding="utf-8",
+    )
+
+    case = load_evaluation_cases(csv_path)[0]
+
+    assert case.required_facts == ("outside ECU manual scope", "used_llm false")
+    assert case.forbidden_facts == ("OTA supported",)
+    assert case.expected_sources == ("ECU-700_Series_Manual.md",)
+    assert case.expected_route == "general"
+
+
+def test_fact_metrics_reward_required_facts_and_penalize_forbidden_facts() -> None:
+    answer = "ECU-850b has a 5 TOPS NPU and 4 GB LPDDR4 RAM."
+
+    assert fact_recall(("5 TOPS NPU", "4 GB LPDDR4"), answer) == 1.0
+    assert fact_recall(("5 TOPS NPU", "32 GB eMMC"), answer) == 0.5
+    assert forbidden_fact_violations(("OTA supported", "5 TOPS NPU"), answer) == 1
+
+
+def test_source_and_route_match_are_deterministic() -> None:
+    assert source_match(("a.md", "b.md"), ("b.md", "a.md", "extra.md")) == 1.0
+    assert source_match(("a.md", "b.md"), ("a.md",)) == 0.5
+    assert source_match((), ()) == 1.0
+    assert route_match("comparison", "comparison") == 1.0
+    assert route_match("comparison", "general") == 0.0
+
+
+def test_forbidden_facts_do_not_match_negated_required_evidence() -> None:
+    answer = "The ECU-750 does not support OTA updates."
+
+    assert forbidden_fact_violations(("ECU-750 supports OTA",), answer) == 0
+
+
+def test_forbidden_facts_require_exact_phrase_not_token_subset() -> None:
+    answer = "This document covers ECU-850. ECU-850b has 32 GB eMMC storage."
+
+    assert forbidden_fact_violations(("ECU-850 has 32 GB",), answer) == 0
+
+
+def test_forbidden_facts_ignore_explicit_rejection_context() -> None:
+    answer = "I cannot invent a 200°C maximum because that contradicts the evidence."
+
+    assert forbidden_fact_violations(("200°C",), answer) == 0
+    assert forbidden_fact_violations(("200°C",), "ECU-850 has a 200°C maximum.") == 1

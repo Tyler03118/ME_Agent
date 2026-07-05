@@ -33,6 +33,8 @@ class EmbeddingModel:
         backend: str = "auto",
         fallback_dimensions: int = 384,
     ) -> None:
+        """Select and initialize the requested embedding backend."""
+
         self.model_name = model_name
         self.requested_backend = backend.lower().strip()
         self.fallback_dimensions = fallback_dimensions
@@ -52,6 +54,8 @@ class EmbeddingModel:
         return _hashing_encode(texts, self.fallback_dimensions)
 
     def _load_backend(self) -> EmbeddingInfo:
+        """Load sentence-transformers when possible, otherwise use hashing."""
+
         if self.requested_backend in {"hashing", "sparse", "fallback"}:
             return EmbeddingInfo("hashing", "generic-token-hashing", self.fallback_dimensions)
         try:
@@ -89,6 +93,8 @@ def tokenize(text: str) -> list[str]:
 
 
 def _hashing_encode(texts: list[str], dimensions: int) -> np.ndarray:
+    """Encode text with signed token hashing for deterministic offline vectors."""
+
     vectors = np.zeros((len(texts), dimensions), dtype=np.float32)
     for row, text in enumerate(texts):
         for token in tokenize(text):
@@ -100,6 +106,8 @@ def _hashing_encode(texts: list[str], dimensions: int) -> np.ndarray:
 
 
 def _normalize(vectors: np.ndarray) -> np.ndarray:
+    """L2-normalize vectors while keeping zero rows stable."""
+
     if vectors.size == 0:
         return vectors.astype(np.float32)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -108,6 +116,8 @@ def _normalize(vectors: np.ndarray) -> np.ndarray:
 
 
 def _sentence_transformer_incompatibility() -> str:
+    """Return a reason string when installed optional packages are incompatible."""
+
     try:
         transformers_version = metadata.version("transformers")
         torch_version = metadata.version("torch")
@@ -119,6 +129,8 @@ def _sentence_transformer_incompatibility() -> str:
 
 
 def _version_at_least(version: str, major: int, minor: int) -> bool:
+    """Compare the numeric major/minor prefix of a package version string."""
+
     parts = re.findall(r"\d+", version)[:2]
     if len(parts) < 2:
         return False

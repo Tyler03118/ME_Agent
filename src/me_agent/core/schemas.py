@@ -90,7 +90,7 @@ class AgentResponse:  # pylint: disable=too-many-instance-attributes
 
 
 @dataclass(frozen=True)
-class EvaluationCase:
+class EvaluationCase:  # pylint: disable=too-many-instance-attributes
     """Single golden evaluation question."""
 
     question_id: str
@@ -98,6 +98,10 @@ class EvaluationCase:
     question: str
     expected_answer: str
     evaluation_criteria: str
+    required_facts: tuple[str, ...] = ()
+    forbidden_facts: tuple[str, ...] = ()
+    expected_sources: tuple[str, ...] = ()
+    expected_route: str = ""
 
 
 @dataclass(frozen=True)
@@ -109,6 +113,11 @@ class EvaluationResult:  # pylint: disable=too-many-instance-attributes
     latency_seconds: float
     semantic_similarity: float
     token_coverage: float
+    required_fact_recall: float = 1.0
+    forbidden_fact_violations: int = 0
+    source_match: float = 1.0
+    route_match: float = 1.0
+    combined_score: float = 0.0
     passed: bool = False
     source_diagnostic: float = 0.0
     route_diagnostic: str = ""

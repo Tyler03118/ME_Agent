@@ -17,7 +17,13 @@ IN_SCOPE_TERMS = (
 
 
 class DeterministicRouter:
-    """Route queries with stable rules and an explicit out-of-scope category."""
+    """Route queries with stable rules and an explicit out-of-scope category.
+
+    For this corpus, model names, feature names, and comparison language are
+    explicit enough that deterministic routing gives predictable source coverage
+    and low latency. The router returns both an intent category and the manuals
+    that retrieval should prioritize.
+    """
 
     def route(self, query: str) -> RouteDecision:
         """Classify a query and infer required source files."""
@@ -34,6 +40,9 @@ class DeterministicRouter:
         rationale = "No specific ECU route matched."
 
         if _contains_any(normalized, ("enable", "configuration", "driver command", "npu")):
+            # NPU enablement and driver-command questions are specific to the
+            # ECU-850b addendum, but base ECU-850 context may still be included
+            # when the query names both models.
             category = (
                 "configuration"
                 if "enable" in normalized or "driver" in normalized
@@ -42,16 +51,21 @@ class DeterministicRouter:
             required_sources = sources or {ECU_800_PLUS_SOURCE}
             rationale = "NPU and driver-command queries require the ECU-800 plus addendum."
         elif _contains_any(normalized, ("ota", "over-the-air")):
+            # Feature-availability questions require both positive and negative
+            # evidence; forcing all manuals helps answer "which models support X".
             category = "feature_availability"
             required_sources = set(ALL_SOURCES)
             rationale = "Feature availability requires positive and negative evidence."
         elif _contains_any(
             normalized,
             (
-                "compare", "comparison", "difference", "differences", "across", "all models",
-                "which ecu", "harshest", "storage capacity",
+                "compare", "comparison", "difference", "differences", "changed specs",
+                "between", " vs ", "across", "all models", "which ecu", "harshest",
+                "storage capacity",
             ),
         ):
+            # Comparison queries are deliberately broad. A one-source answer can
+            # be fluent but incomplete when the user asks across ECU families.
             category = "comparison"
             required_sources = sources or set(ALL_SOURCES)
             rationale = "Comparison queries need coverage across all relevant models."
@@ -72,6 +86,8 @@ class DeterministicRouter:
 
     @staticmethod
     def _required_sources(normalized_query: str) -> set[str]:
+        """Infer source constraints from explicit model and family mentions."""
+
         sources: set[str] = set()
         if re.search(r"\becu-750\b|\becu-700\b", normalized_query):
             sources.add(ECU_700_SOURCE)
@@ -87,12 +103,18 @@ class DeterministicRouter:
 
 
 def _is_ecu_manual_query(text: str) -> bool:
+    """Return whether text appears answerable from ECU manuals."""
+
     return _contains_any(text, IN_SCOPE_TERMS) or bool(re.search(r"\becu[- ]?\d+\w*\b", text))
 
 
 def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
+    """Return whether any configured substring appears in normalized text."""
+
     return any(needle in text for needle in needles)
 
 
 def _ordered_sources(sources: set[str]) -> tuple[str, ...]:
+    """Return source filenames in canonical manual order."""
+
     return tuple(source for source in ALL_SOURCES if source in sources)

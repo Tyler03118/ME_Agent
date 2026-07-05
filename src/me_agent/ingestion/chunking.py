@@ -54,6 +54,8 @@ class MarkdownChunker:
     """Split documents into deterministic overlapping character chunks."""
 
     def __init__(self, chunk_size: int = 900, chunk_overlap: int = 120) -> None:
+        """Validate and store chunking parameters."""
+
         if chunk_size <= 0:
             raise ValueError("chunk_size must be positive")
         if chunk_overlap < 0:
@@ -89,6 +91,8 @@ class MarkdownChunker:
 
 
 def _document_text_and_source(document: ManualDocument | dict[str, Any]) -> tuple[str, str]:
+    """Normalize supported document shapes into text and source name."""
+
     if isinstance(document, ManualDocument):
         return document.content, str(document.metadata.get("source", "document"))
     text = str(document.get("text", document.get("content", "")))

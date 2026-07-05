@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import pandas as pd
 
-from me_agent.tracking.mlflow_logging import MODEL_REQUIREMENTS
+from me_agent.core.config import AgentConfig
+from me_agent.tracking.mlflow_logging import MODEL_CODE_PATHS, MODEL_REQUIREMENTS, model_tracking_params
 from me_agent.tracking.mlflow_model import MEEngineeringAssistantModel
 
 
@@ -62,3 +65,27 @@ def test_mlflow_requirements_are_resolvable_packages() -> None:
     assert "langchain" in joined
     assert "sentence-transformers" in joined
     assert "faiss-cpu" in joined
+
+
+def test_mlflow_logging_includes_package_code_path() -> None:
+    assert any(
+        Path(path).name == "me_agent" and (Path(path) / "__init__.py").exists()
+        for path in MODEL_CODE_PATHS
+    )
+
+
+def test_mlflow_tracking_params_include_versioning_metadata() -> None:
+    params = model_tracking_params(
+        AgentConfig(
+            model_name="deepseek-v4-flash",
+            retriever_mode="hybrid",
+            embedding_backend="hashing",
+        )
+    )
+
+    assert params["package_version"]
+    assert params["model_name"] == "deepseek-v4-flash"
+    assert params["retriever_mode"] == "hybrid"
+    assert params["embedding_backend"] == "hashing"
+    assert params["api_key_env_var"] == "DEEPSEEK_API_KEY"
+    assert not any("key_value" in key.lower() for key in params)

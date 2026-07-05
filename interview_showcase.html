@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ME Engineering Assistant · Interview Showcase</title>
+  <style>
+    :root {
+      --paper: #f7f4ee;
+      --panel: #fffaf2;
+      --panel-2: #f0ece4;
+      --ink: #1e2428;
+      --muted: #647077;
+      --line: rgba(30, 36, 40, 0.12);
+      --line-strong: rgba(30, 36, 40, 0.22);
+      --blue: #245b78;
+      --green: #2f6b4f;
+      --amber: #9a6428;
+      --red: #9b3d35;
+      --shadow: 0 1px 2px rgba(20, 24, 28, 0.06), 0 12px 36px rgba(20, 24, 28, 0.07);
+      --radius: 8px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      line-height: 1.55;
+      letter-spacing: 0;
+      background:
+        linear-gradient(90deg, rgba(36, 91, 120, 0.045), transparent 26%),
+        radial-gradient(circle at 78% 8%, rgba(154, 100, 40, 0.08), transparent 32%),
+        var(--paper);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      border-right: 1px solid var(--line);
+      background: rgba(247, 244, 238, 0.88);
+      backdrop-filter: blur(14px);
+      overflow: auto;
+    }
+
+    .brand {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 28px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    nav {
+      display: grid;
+      gap: 4px;
+      margin: 0 0 28px;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 34px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      color: #3e484e;
+      font-size: 13px;
+    }
+
+    nav a:hover {
+      background: rgba(36, 91, 120, 0.08);
+      color: var(--ink);
+    }
+
+    .nav-num {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .side-note {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 242, 0.72);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    main {
+      max-width: 1180px;
+      width: 100%;
+      padding: 40px 54px 72px;
+    }
+
+    section {
+      padding: 34px 0;
+      border-bottom: 1px solid var(--line);
+      scroll-margin-top: 24px;
+    }
+
+    section:first-child { padding-top: 0; }
+
+    .hero {
+      min-height: 440px;
+      display: grid;
+      align-content: center;
+      gap: 26px;
+    }
+
+    .hero h2 {
+      max-width: 980px;
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(44px, 7vw, 82px);
+      line-height: 0.94;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .hero-copy {
+      max-width: 780px;
+      color: #3c454a;
+      font-size: 18px;
+    }
+
+    .hero-copy strong { color: var(--ink); }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 250, 242, 0.72);
+      color: #39444a;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 242, 0.82);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+    }
+
+    .metric small {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .metric b {
+      display: block;
+      color: var(--ink);
+      font-size: 30px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    h3 {
+      margin: 0 0 18px;
+      font-family: var(--serif);
+      font-size: 36px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .section-lead {
+      max-width: 760px;
+      margin: -8px 0 22px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 242, 0.82);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-body { padding: 18px; }
+
+    .card p, .card li {
+      color: #465157;
+      font-size: 14px;
+    }
+
+    .card p { margin: 0; }
+
+    .card ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(47, 107, 79, 0.1);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .tag.warn {
+      background: rgba(154, 100, 40, 0.12);
+      color: var(--amber);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 242, 0.82);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      color: #3d484e;
+      background: rgba(240, 236, 228, 0.72);
+      font-weight: 800;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    td:first-child {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 242, 0.82);
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .node {
+      min-height: 76px;
+      padding: 12px;
+      border: 1px solid rgba(36, 91, 120, 0.18);
+      border-radius: 7px;
+      background: rgba(36, 91, 120, 0.07);
+    }
+
+    .node b {
+      display: block;
+      margin-bottom: 4px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .node span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .script {
+      display: grid;
+      gap: 12px;
+    }
+
+    .beat {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .beat:first-child { border-top: 0; }
+
+    .beat-label {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .zh {
+      margin: 0 0 10px;
+      color: #283036;
+      font-size: 15px;
+    }
+
+    .en {
+      margin: 0;
+      color: #4d5960;
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    .prompt {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .qa {
+      display: grid;
+      gap: 10px;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 242, 0.82);
+      overflow: hidden;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 14px 16px;
+      color: #263037;
+      font-weight: 750;
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    details[open] summary {
+      border-bottom: 1px solid var(--line);
+      background: rgba(240, 236, 228, 0.62);
+    }
+
+    .answer {
+      padding: 14px 16px 16px;
+      color: #465157;
+      font-size: 14px;
+    }
+
+    code {
+      padding: 2px 5px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: rgba(240, 236, 228, 0.72);
+      font-family: var(--mono);
+      font-size: 0.9em;
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      border: 1px solid rgba(30, 36, 40, 0.16);
+      border-radius: var(--radius);
+      background: #20272b;
+      color: #f2eee7;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .score {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 242, 0.82);
+    }
+
+    .grade {
+      display: grid;
+      place-items: center;
+      width: 138px;
+      height: 138px;
+      border: 1px solid rgba(47, 107, 79, 0.24);
+      border-radius: 50%;
+      background: rgba(47, 107, 79, 0.08);
+      color: var(--green);
+      font-family: var(--serif);
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .bars {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar label {
+      display: flex;
+      justify-content: space-between;
+      color: #374249;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .track {
+      height: 10px;
+      margin-top: 6px;
+      border-radius: 999px;
+      background: rgba(30, 36, 40, 0.1);
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    .callout {
+      padding: 16px;
+      border-left: 4px solid var(--blue);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      background: rgba(36, 91, 120, 0.08);
+      color: #39464d;
+      font-size: 14px;
+    }
+
+    .link-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .link-list a {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 250, 242, 0.78);
+      color: #263037;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .link-list span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .print-note {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      aside {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      main { padding: 30px 22px 56px; }
+      .metric-grid, .three-col, .two-col, .flow-row { grid-template-columns: 1fr; }
+      .beat, .score { grid-template-columns: 1fr; }
+      .hero { min-height: auto; }
+    }
+
+    @media print {
+      body { background: white; }
+      .shell { display: block; }
+      aside { display: none; }
+      main { max-width: none; padding: 0; }
+      section { page-break-inside: avoid; }
+      .card, .metric, .table-wrap, .flow, details { box-shadow: none; }
+      details { break-inside: avoid; }
+      details:not([open]) .answer { display: block; }
+      .print-note { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">
+        <div class="eyebrow">Interview Showcase</div>
+        <h1>ME Engineering Assistant</h1>
+        <p>Senior AI Engineering code review guide for a LangGraph + RAG + MLflow ECU assistant.</p>
+      </div>
+      <nav aria-label="Page navigation">
+        <a href="#overview"><span>Overview</span><span class="nav-num">01</span></a>
+        <a href="#architecture"><span>Architecture</span><span class="nav-num">02</span></a>
+        <a href="#validation"><span>Validation</span><span class="nav-num">03</span></a>
+        <a href="#tiers"><span>Tier Mapping</span><span class="nav-num">04</span></a>
+        <a href="#tradeoffs"><span>Trade-offs</span><span class="nav-num">05</span></a>
+        <a href="#walkthrough"><span>Code Review Script</span><span class="nav-num">06</span></a>
+        <a href="#qa"><span>Q&A</span><span class="nav-num">07</span></a>
+        <a href="#limits"><span>Limits & Next</span><span class="nav-num">08</span></a>
+      </nav>
+      <div class="side-note">
+        Offline single-file page. Use it as a speaking aid, not a script to read verbatim.
+      </div>
+    </aside>
+
+    <main>
+      <section id="overview" class="hero">
+        <div class="pill-row">
+          <span class="pill">LangGraph state machine</span>
+          <span class="pill">Hybrid RAG</span>
+          <span class="pill">DeepSeek V4 Flash</span>
+          <span class="pill">MLflow pyfunc</span>
+          <span class="pill">Human review branch</span>
+          <span class="pill">Visual eval reports</span>
+        </div>
+        <h2>Package-first ECU RAG assistant built for code review.</h2>
+        <p class="hero-copy">
+          I built a <strong>multi-source RAG agent</strong> that answers ECU engineering questions across
+          ECU-700 and ECU-800 manuals. The system routes questions, retrieves source-constrained context,
+          generates grounded answers, verifies support, computes confidence, and flags low-confidence cases
+          for human review.
+        </p>
+        <div class="metric-grid">
+          <div class="metric">
+            <small>Live eval</small>
+            <b>10/10</b>
+            <span>Golden ECU questions passed</span>
+          </div>
+          <div class="metric">
+            <small>LLM usage</small>
+            <b>14/14</b>
+            <span>Live DeepSeek stress set passed</span>
+          </div>
+          <div class="metric">
+            <small>Latency</small>
+            <b>3.60s</b>
+            <span>Golden live avg, max 5.30s</span>
+          </div>
+          <div class="metric">
+            <small>Quality gate</small>
+            <b>10.00</b>
+            <span>pylint / 10, pytest 57 passed</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="architecture">
+        <h3>System Architecture</h3>
+        <p class="section-lead">
+          The core is a single LangGraph workflow with bounded conditional control flow. It behaves like an
+          agent where it matters, while avoiding unnecessary multi-agent complexity for a small technical corpus.
+        </p>
+        <div class="flow" aria-label="LangGraph workflow">
+          <div class="flow-row">
+            <div class="node"><b>validate_input</b><span>Reject empty or invalid questions.</span></div>
+            <div class="node"><b>route_query</b><span>Map ECU models and intent to required sources.</span></div>
+            <div class="node"><b>retrieve_context</b><span>Use keyword, vector, or hybrid retrieval.</span></div>
+            <div class="node"><b>broaden_retrieve</b><span>One bounded retry when retrieval confidence is low.</span></div>
+          </div>
+          <div class="flow-row">
+            <div class="node"><b>generate_answer</b><span>DeepSeek generation with extractive fallback.</span></div>
+            <div class="node"><b>verify_answer</b><span>Check answer overlap with retrieved evidence.</span></div>
+            <div class="node"><b>compute_confidence</b><span>Blend retrieval, coverage, and verifier support.</span></div>
+            <div class="node"><b>human_review</b><span>Flag unsupported or low-confidence outputs.</span></div>
+          </div>
+        </div>
+
+        <div class="three-col" style="margin-top:16px">
+          <div class="card"><div class="card-body">
+            <span class="tag">RAG</span>
+            <h4>Source-constrained retrieval</h4>
+            <p>Comparison and feature-availability questions force coverage across the relevant ECU manuals, reducing one-sided answers.</p>
+          </div></div>
+          <div class="card"><div class="card-body">
+            <span class="tag">Agent</span>
+            <h4>Bounded control flow</h4>
+            <p>Conditional edges handle out-of-scope questions, broadened retrieval, and human review without creating an uncontrolled loop.</p>
+          </div></div>
+          <div class="card"><div class="card-body">
+            <span class="tag">MLOps</span>
+            <h4>MLflow packaging</h4>
+            <p>The assistant is logged as a pyfunc model with signature, input example, pip requirements, and corpus artifacts.</p>
+          </div></div>
+        </div>
+      </section>
+
+      <section id="validation">
+        <h3>Current Validation Status</h3>
+        <p class="section-lead">
+          The final version is backed by local Python 3.11 checks, live DeepSeek evals, stress-eval artifacts,
+          and self-contained HTML reports that make the evaluation evidence easy to review in an interview.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Result</th>
+                <th>What it proves</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>python3 -m compileall src tests scripts</code></td>
+                <td>Pass</td>
+                <td>Package, tests, and scripts compile under Python 3.11.</td>
+              </tr>
+              <tr>
+                <td><code>python3 -m pytest -q</code></td>
+                <td>57 passed</td>
+                <td>Routing, retrieval, confidence, enhanced evaluation, graph, and MLflow behavior are covered.</td>
+              </tr>
+              <tr>
+                <td><code>python3 -m pylint src/me_agent</code></td>
+                <td>10.00 / 10</td>
+                <td>Exceeds the challenge's 85% lint requirement.</td>
+              </tr>
+              <tr>
+                <td><code>python3 scripts/run_eval.py</code></td>
+                <td>10 / 10</td>
+                <td>Live DeepSeek evaluation passes all golden questions.</td>
+              </tr>
+              <tr>
+                <td><code>python3 scripts/run_eval.py --eval-path data/eval/stress-questions.csv</code></td>
+                <td>14 / 14</td>
+                <td>Live stress set covers paraphrases, negative evidence, prompt injection, out-of-scope refusal, source matching, and route matching.</td>
+              </tr>
+              <tr>
+                <td><code>python3 scripts/render_eval_report.py</code></td>
+                <td>Pass</td>
+                <td>Existing eval JSON can be rendered into a visual HTML report without rerunning the model.</td>
+              </tr>
+              <tr>
+                <td><code>python3 scripts/log_mlflow_model.py</code></td>
+                <td>Pass</td>
+                <td>Model can be logged with artifacts and metadata.</td>
+              </tr>
+              <tr>
+                <td><code>python3 scripts/load_mlflow_model.py</code></td>
+                <td>Pass</td>
+                <td>Logged pyfunc model can be loaded and called.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="two-col" style="margin-top:16px">
+          <pre>{
+  "accuracy": 1.0,
+  "used_llm_rate": 1.0,
+  "fallback_cases": 0,
+  "avg_latency_seconds": 3.5986,
+  "max_latency_seconds": 5.3028,
+  "mean_semantic_similarity": 0.7128,
+  "mean_token_coverage": 0.7346
+}</pre>
+          <div class="callout">
+            Interview framing: "I validate this at four levels: unit tests for key logic, static quality through pylint, live evaluation over golden ECU questions, and a custom stress set with deterministic fact, forbidden-claim, source, and route checks. The JSON artifacts can also be reviewed as standalone HTML reports."
+            <div class="link-list" aria-label="Evaluation reports">
+              <a href="reports/eval_report.html">Golden eval HTML <span>reports/eval_report.html</span></a>
+              <a href="reports/stress_eval_report.html">Stress eval HTML <span>reports/stress_eval_report.html</span></a>
+              <a href="docs/full_system_test_report.md">Markdown evidence <span>docs/full_system_test_report.md</span></a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tiers">
+        <h3>Challenge Tier Mapping</h3>
+        <div class="score">
+          <div class="grade">97</div>
+          <div class="bars">
+            <div class="bar">
+              <label><span>Tier 1 · Core AI / ML</span><span>58 / 60</span></label>
+              <div class="track"><div class="fill" style="width:97%"></div></div>
+            </div>
+            <div class="bar">
+              <label><span>Tier 2 · Production / MLOps</span><span>29 / 30</span></label>
+              <div class="track"><div class="fill" style="width:97%"></div></div>
+            </div>
+            <div class="bar">
+              <label><span>Tier 3 · Leadership / Extensions</span><span>10 / 10</span></label>
+              <div class="track"><div class="fill" style="width:100%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top:16px">
+          <table>
+            <thead>
+              <tr>
+                <th>Requirement</th>
+                <th>Status</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>LangChain + LangGraph workflow</td>
+                <td>Complete</td>
+                <td>StateGraph with validation, routing, retrieval, generation, verification, confidence, and HITL branch.</td>
+              </tr>
+              <tr>
+                <td>Multi-document RAG over ECU manuals</td>
+                <td>Complete</td>
+                <td>Markdown manuals loaded, chunked, and queried with source metadata preserved.</td>
+              </tr>
+              <tr>
+                <td>Query routing across ECU-700 / ECU-800</td>
+                <td>Complete</td>
+                <td>Deterministic router assigns required sources and handles comparison questions.</td>
+              </tr>
+              <tr>
+                <td>Vector store</td>
+                <td>Complete</td>
+                <td>FAISS preferred, numpy fallback; embeddings initialized once and index built once.</td>
+              </tr>
+              <tr>
+                <td>MLflow pyfunc model</td>
+                <td>Complete</td>
+                <td>Loggable, loadable, callable predict method with signature and artifacts.</td>
+              </tr>
+              <tr>
+                <td>Testing and evaluation</td>
+                <td>Complete</td>
+                <td>57 unit tests; live eval 10/10; live stress eval 14/14; MLflow metrics, JSON artifacts, and visual HTML reports.</td>
+              </tr>
+              <tr>
+                <td>Custom stress evaluation system</td>
+                <td>Complete</td>
+                <td>Stress CSV adds Required_Facts, Forbidden_Facts, Expected_Sources, and Expected_Route while the challenge CSV uses the standard Expected_Answer score.</td>
+              </tr>
+              <tr>
+                <td>Interview-ready eval evidence</td>
+                <td>Complete</td>
+                <td>Self-contained HTML reports combine summary metrics, category pass rates, failed-case review, case-level sources, and the Markdown test report.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tradeoffs">
+        <h3>Design Decisions & Trade-offs</h3>
+        <div class="three-col">
+          <div class="card"><div class="card-body">
+            <span class="tag warn">Trade-off</span>
+            <h4>Deterministic router, not LLM router</h4>
+            <p>The corpus has explicit model IDs and source boundaries. Rules are lower-cost, lower-latency, easier to test, and less likely to misroute exact specification questions. An LLM router becomes useful when the taxonomy grows or becomes ambiguous.</p>
+          </div></div>
+          <div class="card"><div class="card-body">
+            <span class="tag warn">Trade-off</span>
+            <h4>Keyword-first hybrid retrieval</h4>
+            <p>Specs depend on exact tokens like model numbers, units, and command strings. Keyword retrieval protects precision; vector retrieval improves recall for phrasing variation. Results are merged and deduplicated without reranking.</p>
+          </div></div>
+          <div class="card"><div class="card-body">
+            <span class="tag warn">Trade-off</span>
+            <h4>Heuristic confidence</h4>
+            <p>Confidence blends retrieval relevance, source coverage, and verifier support. It is not a calibrated probability; it is an operational triage signal for human review.</p>
+          </div></div>
+        </div>
+      </section>
+
+      <section id="walkthrough">
+        <h3>Code Review Speaking Script</h3>
+        <p class="section-lead">
+          Use these as talking beats. The English lines are not literal translations; they are concise interview-ready versions.
+        </p>
+        <div class="script">
+          <div class="beat">
+            <div class="beat-label">Opening · 30s</div>
+            <div>
+              <p class="zh">我构建的是一个面向 ME 工程师的多源 RAG Agent，用来跨 ECU-700 和 ECU-800 手册回答规格、配置和对比问题。它不是 notebook demo，而是一个可安装、可测试、可用 MLflow 打包的 Python package。</p>
+              <p class="en">I built a package-first, multi-source RAG agent for ECU engineering manuals. It is not a notebook demo; it is installable, testable, and packaged as an MLflow pyfunc model.</p>
+              <div class="prompt">投屏：README 顶部 + package layout。</div>
+            </div>
+          </div>
+          <div class="beat">
+            <div class="beat-label">Architecture · 60s</div>
+            <div>
+              <p class="zh">核心是一张 LangGraph 状态图：validate input、route query、retrieve context、generate answer、verify answer、compute confidence，最后根据置信度 finalize 或 human review。它有 agent 式的条件控制流，但没有引入不必要的多 Agent 复杂度。</p>
+              <p class="en">The core is one LangGraph state machine. It has agent-like conditional control flow, but I intentionally avoided multi-agent complexity because the corpus and task boundaries are clear.</p>
+              <div class="prompt">投屏：workflow/graph.py。</div>
+            </div>
+          </div>
+          <div class="beat">
+            <div class="beat-label">Retrieval · 75s</div>
+            <div>
+              <p class="zh">检索层支持 keyword、vector、hybrid 三种模式。我的默认选择是 hybrid：规格问题靠 keyword 精确命中型号、数字和命令；语义泛化靠 vector 兜底。对比问题会强制 required_sources 覆盖，避免只检索到其中一本手册。</p>
+              <p class="en">The default is hybrid retrieval: keyword protects exact specs and commands, vector improves recall, and required source coverage prevents incomplete cross-document comparisons.</p>
+              <div class="prompt">投屏：retrieval/retriever.py + vector_store.py。</div>
+            </div>
+          </div>
+          <div class="beat">
+            <div class="beat-label">Grounding · 75s</div>
+            <div>
+              <p class="zh">生成层优先调用 DeepSeek，但答案必须基于检索上下文并带来源引用。没有 key 或调用失败时，会退回到通用抽取式 fallback。这里没有题目级硬编码，也不会用固定答案覆盖模型真实输出。</p>
+              <p class="en">Generation calls DeepSeek when available, and answers are grounded in retrieved evidence with citations. The fallback path uses generic extraction from retrieved context.</p>
+              <div class="prompt">投屏：generation/llm.py + verifier.py。</div>
+            </div>
+          </div>
+          <div class="beat">
+            <div class="beat-label">Validation · 60s</div>
+            <div>
+              <p class="zh">当前验证已经跑通：pytest 57 passed，pylint 10.00/10，live DeepSeek golden eval 10/10，live stress eval 14/14。基础题使用 Expected_Answer similarity/token coverage，stress 题再加 required facts、forbidden facts、expected sources 和 expected route。</p>
+              <p class="en">Validation passes end to end: 57 tests, pylint 10.00/10, live golden evaluation 10/10, and live stress evaluation 14/14. The stress evaluator adds fact, forbidden-claim, source, and route checks alongside the standard Expected_Answer score.</p>
+              <div class="prompt">投屏：reports/stress_eval_report.html + docs/evaluation_strategy.md。</div>
+            </div>
+          </div>
+          <div class="beat">
+            <div class="beat-label">Close · 30s</div>
+            <div>
+              <p class="zh">我最想强调的是，这个项目不是为了刷分堆功能，而是把 RAG、Agent workflow、evaluation 和 MLOps 做成一个可辩护的小系统。剩下的提升点也很清楚：Markdown-aware chunking、reranking 和更严格的 confidence calibration。</p>
+              <p class="en">The goal was not to pile on features, but to build a defensible mini system across RAG, agent workflow, evaluation, and MLOps. The next upgrades are Markdown-aware chunking, reranking, and confidence calibration.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="qa">
+        <h3>Likely Interview Questions</h3>
+        <div class="qa">
+          <details open>
+            <summary>Why rule-based routing instead of an LLM router?</summary>
+            <div class="answer">
+              Because this corpus has explicit ECU model IDs, families, and comparison keywords. Deterministic routing gives lower latency, zero model cost, full unit-testability, and predictable source coverage. I would add an LLM router only when the corpus grows beyond explicit taxonomy or starts receiving ambiguous natural-language intents.
+            </div>
+          </details>
+          <details>
+            <summary>How do you prevent hallucination?</summary>
+            <div class="answer">
+              I constrain the model with retrieved context, include source citations, verify answer/context overlap after generation, compute confidence from retrieval and verifier signals, and route unsupported or low-confidence answers to human review. The system also says when context is insufficient instead of forcing an answer.
+            </div>
+          </details>
+          <details>
+            <summary>Why hybrid retrieval?</summary>
+            <div class="answer">
+              ECU questions often hinge on exact strings: model names, temperatures, storage sizes, command flags, and units. Keyword retrieval is strong there. Vector retrieval helps when the user asks semantically, such as "harshest environment" rather than "operating temperature." Hybrid keeps the exact-match precision and adds semantic recall.
+            </div>
+          </details>
+          <details>
+            <summary>How would this scale to thousands of manuals?</summary>
+            <div class="answer">
+              I would move from in-memory indexing to a persistent vector database, add incremental ingestion keyed by document version, use Markdown-aware section and table chunking, add a reranker, cache common queries, and track retrieval drift through MLflow evaluation artifacts and sampled SME review.
+            </div>
+          </details>
+          <details>
+            <summary>What makes this an agent rather than a fixed pipeline?</summary>
+            <div class="answer">
+              It is intentionally not an open-ended autonomous agent. It is a bounded agentic workflow: it validates input, routes dynamically, conditionally broadens retrieval, verifies outputs, computes confidence, and decides whether to finalize or escalate. That is the right level of agency for a safety-sensitive engineering assistant.
+            </div>
+          </details>
+          <details>
+            <summary>How do you know the evaluation is honest?</summary>
+            <div class="answer">
+              The challenge CSV scores against Expected_Answer using semantic similarity and token coverage. The custom stress CSV adds explicit Required_Facts, Forbidden_Facts, Expected_Sources, and Expected_Route fields for production-style regression checks. The offline fallback score reflects a generic extractive path, while live DeepSeek runs provide the primary quality signal.
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section id="limits">
+        <h3>Known Limits & Next Steps</h3>
+        <div class="three-col">
+          <div class="card"><div class="card-body">
+            <span class="tag warn">Limit</span>
+            <h4>Character-window chunking</h4>
+            <p>Current chunking is deterministic and simple, but can split Markdown tables. Next step: Markdown-aware section/table chunking that keeps headings and rows together.</p>
+          </div></div>
+          <div class="card"><div class="card-body">
+            <span class="tag warn">Limit</span>
+            <h4>No reranker yet</h4>
+            <p>Hybrid retrieval currently merges keyword-first and vector results. A cross-encoder or LLM reranker would improve precision at larger corpus scale.</p>
+          </div></div>
+          <div class="card"><div class="card-body">
+            <span class="tag warn">Limit</span>
+            <h4>Confidence is heuristic</h4>
+            <p>The score is a triage signal, not a calibrated probability. Production use should calibrate it against SME-labeled samples.</p>
+          </div></div>
+        </div>
+        <div class="callout" style="margin-top:16px">
+          Closing line: "I would rather defend a simple, testable system with known limits than ship a complex agent whose behavior is hard to explain. This project is designed to be reviewable first, then extendable."
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

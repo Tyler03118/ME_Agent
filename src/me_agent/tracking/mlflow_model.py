@@ -18,9 +18,16 @@ else:
 
 
 class MEEngineeringAssistantModel(_PythonModelBase):
-    """Custom MLflow model exposing the assistant through predict()."""
+    """Custom MLflow model exposing the assistant through ``predict``.
+
+    MLflow loads this wrapper in a fresh process, so ``load_context`` rebuilds the
+    assistant from packaged artifacts instead of relying on the source checkout's
+    working directory.
+    """
 
     def __init__(self) -> None:
+        """Defer assistant construction until MLflow provides load context."""
+
         self._assistant: EngineeringAssistant | None = None
 
     def load_context(self, context: Any) -> None:
@@ -29,6 +36,9 @@ class MEEngineeringAssistantModel(_PythonModelBase):
         config = AgentConfig.from_env()
         artifacts = getattr(context, "artifacts", None) if context is not None else None
         if artifacts:
+            # Logged models carry their manual directory and eval CSV as MLflow
+            # artifacts. Replacing these paths makes the pyfunc portable outside
+            # the repository where it was originally logged.
             manual_dir = artifacts.get("manuals")
             eval_path = artifacts.get("eval_questions")
             config = replace(
@@ -49,16 +59,26 @@ class MEEngineeringAssistantModel(_PythonModelBase):
         """Return one structured assistant response per input question."""
 
         del context, params
-        assistant = self._assistant or EngineeringAssistant.from_config()
+        assistant = self._assistant
+        if assistant is None:
+            assistant = EngineeringAssistant.from_config()
+            self._assistant = assistant
         return [assistant.ask(question).to_dict() for question in _extract_questions(model_input)]
 
-    def predict_stream(self, context: Any, model_input: Any, params=None):
+    def predict_stream(
+        self,
+        context: Any,
+        model_input,
+        params: dict[str, Any] | None = None,
+    ):
         """Yield predictions for MLflow streaming interfaces."""
 
         yield from self.predict(context, model_input, params)
 
 
 def _extract_questions(model_input: Any) -> list[str]:
+    """Normalize MLflow-supported input shapes into a list of questions."""
+
     if isinstance(model_input, str):
         return [model_input]
     if isinstance(model_input, list):
@@ -70,6 +90,8 @@ def _extract_questions(model_input: Any) -> list[str]:
 
 
 def _extract_question_from_item(item: Any) -> str:
+    """Extract one question string from a scalar or mapping input item."""
+
     if isinstance(item, str):
         return item
     if isinstance(item, dict) and "question" in item:

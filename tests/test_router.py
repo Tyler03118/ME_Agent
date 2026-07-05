@@ -28,3 +28,19 @@ def test_router_sends_non_ecu_questions_to_general() -> None:
 
     assert decision.category == "general"
     assert decision.required_sources == ()
+
+
+def test_router_classifies_terse_difference_phrasing_as_comparison() -> None:
+    decision = DeterministicRouter().route("List only the changed specs between ECU-850 and ECU-850b.")
+
+    assert decision.category == "comparison"
+    assert "ECU-800_Series_Base.md" in decision.required_sources
+    assert "ECU-800_Series_Plus.md" in decision.required_sources
+
+
+def test_router_classifies_vs_phrasing_as_comparison() -> None:
+    decision = DeterministicRouter().route("ECU-750 vs ECU-850 CAN speed")
+
+    assert decision.category == "comparison"
+    assert "ECU-700_Series_Manual.md" in decision.required_sources
+    assert "ECU-800_Series_Base.md" in decision.required_sources

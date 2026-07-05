@@ -30,9 +30,16 @@ class Retriever(Protocol):
 
 
 class InMemoryKeywordRetriever:
-    """Keyword-overlap retriever for exact identifiers and numeric specs."""
+    """Keyword-overlap retriever for exact identifiers and numeric specs.
+
+    ECU questions often depend on tokens such as model IDs, command flags, units,
+    and storage sizes. A simple overlap score keeps those exact matches visible
+    even when vector similarity would blur them.
+    """
 
     def __init__(self, chunks: Iterable[ManualChunk], top_k: int = 4) -> None:
+        """Store chunks and the default retrieval depth."""
+
         self.chunks = list(chunks)
         self.top_k = top_k
 
@@ -73,6 +80,8 @@ class InMemoryVectorRetriever:
         embedding_model: EmbeddingModel | None = None,
         vector_store: VectorStore | None = None,
     ) -> None:
+        """Store chunks and build or reuse the vector store."""
+
         self.chunks = list(chunks)
         self.top_k = top_k
         self.vector_store = vector_store or VectorStore.from_chunks(
@@ -101,7 +110,12 @@ class InMemoryVectorRetriever:
 
 
 class HybridRetriever:
-    """Hybrid retriever that merges keyword-first results with vector recall."""
+    """Hybrid retriever that merges keyword-first results with vector recall.
+
+    Keyword results are kept first because exact specifications are the highest
+    precision signal in this domain. Vector results add recall for paraphrases;
+    the merge deduplicates by chunk id without adding an opaque reranker.
+    """
 
     def __init__(
         self,
@@ -111,6 +125,8 @@ class HybridRetriever:
         keyword_retriever: Retriever | None = None,
         vector_retriever: Retriever | None = None,
     ) -> None:
+        """Create keyword and vector retrievers over the same chunk set."""
+
         self.chunks = list(chunks)
         self.top_k = top_k
         self._keyword = keyword_retriever or InMemoryKeywordRetriever(self.chunks, top_k=top_k)
@@ -143,19 +159,20 @@ class HybridRetriever:
         return _with_required_source_coverage(merged, required_sources, limit)
 
 
-def build_retriever(  # pylint: disable=too-many-arguments
+def build_retriever(
     mode: str,
     chunks: Iterable[ManualChunk],
     *,
     top_k: int,
-    keyword_weight: float = 0.5,
-    vector_weight: float = 0.5,
     embedding_backend: str = "auto",
     embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
 ) -> Retriever:
-    """Build a retriever for the configured mode."""
+    """Build a retriever for the configured mode.
 
-    del keyword_weight, vector_weight
+    The vector retriever builds its index during construction, so runtime queries
+    reuse the same embeddings and avoid rebuilding the corpus for each request.
+    """
+
     normalized_mode = mode.lower().strip()
     chunk_list = list(chunks)
     if normalized_mode == "keyword":
@@ -196,6 +213,8 @@ def _candidate_chunks(
     chunks: list[ManualChunk],
     required_sources: set[str] | None,
 ) -> list[ManualChunk]:
+    """Filter chunks by required source filenames when a route requests them."""
+
     if not required_sources:
         return chunks
     return [chunk for chunk in chunks if chunk.metadata.get("source") in required_sources]
@@ -206,6 +225,8 @@ def _with_required_source_coverage(
     required_sources: set[str] | None,
     limit: int,
 ) -> list[RetrievalResult]:
+    """Keep at least one top result from each required source when possible."""
+
     if not required_sources:
         return scored[:limit]
     selected: list[RetrievalResult] = []
@@ -229,6 +250,8 @@ def _merge_keyword_then_vector(
     keyword_results: list[RetrievalResult],
     vector_results: list[RetrievalResult],
 ) -> list[RetrievalResult]:
+    """Merge retrieval lists while preserving keyword-first ordering."""
+
     merged: list[RetrievalResult] = []
     seen: set[str] = set()
     for result in [*keyword_results, *vector_results]:
@@ -241,6 +264,8 @@ def _merge_keyword_then_vector(
 
 
 def _dedupe_chunks(chunks: list[ManualChunk]) -> list[ManualChunk]:
+    """Return chunks with duplicate chunk IDs removed in first-seen order."""
+
     deduped: list[ManualChunk] = []
     seen: set[str] = set()
     for chunk in chunks:
@@ -253,15 +278,21 @@ def _dedupe_chunks(chunks: list[ManualChunk]) -> list[ManualChunk]:
 
 
 def _chunk_id(chunk: ManualChunk) -> str:
+    """Return the stable identifier used for deduplication."""
+
     value = chunk.metadata.get("chunk_id") or chunk.metadata.get("source") or id(chunk)
     return str(value)
 
 
 def _tokens(text: str) -> set[str]:
+    """Tokenize text for keyword overlap scoring."""
+
     return {match.group(0).lower() for match in TOKEN_PATTERN.finditer(text)}
 
 
 def _keyword_score(query_tokens: set[str], chunk_tokens: set[str]) -> float:
+    """Score a chunk by the share of query tokens it contains."""
+
     if not query_tokens or not chunk_tokens:
         return 0.0
     return round(len(query_tokens & chunk_tokens) / len(query_tokens), 4)

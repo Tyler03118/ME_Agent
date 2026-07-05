@@ -16,6 +16,8 @@ class MarkdownManualLoader:
     """Load Markdown ECU manuals from a local directory."""
 
     def __init__(self, manual_dir: str | Path, pattern: str = "*.md") -> None:
+        """Store the manual directory and glob pattern used by ``load``."""
+
         self.manual_dir = Path(manual_dir)
         self.pattern = pattern
 
@@ -38,6 +40,8 @@ class MarkdownManualLoader:
 
     @staticmethod
     def _metadata(path: Path, content: str) -> dict[str, str | None]:
+        """Build source metadata used later for routing and citation display."""
+
         text = f"{path.name}\n{content}"
         document_id_match = DOCUMENT_ID_PATTERN.search(content)
         product_family = _extract_product_family(text)
@@ -50,6 +54,8 @@ class MarkdownManualLoader:
 
 
 def _extract_product_family(text: str) -> str | None:
+    """Return the ECU product family mentioned in file name or content."""
+
     for family in ("ECU-700", "ECU-800"):
         if family.lower() in text.lower():
             return family
@@ -57,6 +63,8 @@ def _extract_product_family(text: str) -> str | None:
 
 
 def _extract_model(text: str, product_family: str | None) -> str | None:
+    """Return the most specific ECU model identifier found in the text."""
+
     matches = ECU_MODEL_PATTERN.findall(text)
     for model in matches:
         normalized = model.upper().replace("B", "b")

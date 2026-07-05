@@ -9,6 +9,10 @@ The implementation intentionally stays as a single-agent RAG system. It has
 agent-like control flow through conditional routing, one retrieval retry, and a
 human-review branch, without introducing unnecessary multi-agent complexity.
 
+Routing is deterministic by design. An LLM router would be more flexible, but for
+this small ECU corpus the regex/keyword router is cheaper, lower-latency, easier
+to test, and less likely to misroute exact model/specification questions.
+
 ## Architecture
 
 ```mermaid
@@ -94,55 +98,126 @@ hashing if the package/model is unavailable. To allow the first run to download
 
 ## Usage
 
+After `pip install -e ".[dev]"`, the package exposes console entry points:
+
 ```bash
-python scripts/run_agent.py "How much RAM does the ECU-850 have?"
-python scripts/run_agent.py "今天天气如何"
-ME_AGENT_RETRIEVER_MODE=keyword python scripts/run_eval.py
-ME_AGENT_RETRIEVER_MODE=vector python scripts/run_eval.py
-ME_AGENT_RETRIEVER_MODE=hybrid python scripts/run_eval.py
-python scripts/log_mlflow_model.py
-python scripts/load_mlflow_model.py
+me-agent "How much RAM does the ECU-850 have?"
+me-agent "How's the weather today?"
+ME_AGENT_RETRIEVER_MODE=keyword me-agent-run-eval
+ME_AGENT_RETRIEVER_MODE=vector me-agent-run-eval
+ME_AGENT_RETRIEVER_MODE=hybrid me-agent-run-eval
+me-agent-render-eval-report eval_results.json reports/eval_report.html
+me-agent-log-model
+me-agent-load-model
 ```
+
+The `scripts/*.py` files expose the same workflows for local development. If the
+package has not been installed yet, run them with `PYTHONPATH=src`.
 
 ## Evaluation
 
-Evaluation no longer uses question-id-specific facts or route/source pass/fail
-rules. It compares each agent answer to the CSV `Expected_Answer` using semantic
-similarity plus expected-token coverage. Route and source fields remain in
-`eval_results.json` as diagnostics.
+Evaluation compares each golden answer to `Expected_Answer` using semantic
+similarity plus expected-token coverage. Stress cases can additionally provide
+`Required_Facts`, `Forbidden_Facts`, `Expected_Sources`, and `Expected_Route`,
+which enable deterministic fact recall, forbidden-fact violation, source-match,
+and route-match metrics.
 
-`python scripts/run_eval.py` starts an MLflow run, logs metrics, and logs
-`eval_results.json` as an artifact. Key metrics include accuracy, latency,
-`used_llm_rate`, fallback count, mean semantic similarity, and mean token
-coverage.
+`python scripts/run_eval.py` starts an MLflow run, logs metrics, logs the JSON
+result artifact, and can optionally produce a self-contained visual HTML report.
+Key metrics include accuracy, latency, `used_llm_rate`, fallback count, mean
+semantic similarity, mean token coverage, mean required-fact recall, mean source
+match, mean route match, and forbidden fact violations.
 
-Final measured results on 2026-07-02:
+The provided challenge set lives at `data/eval/test-questions.csv`. The custom
+stress set lives at `data/eval/stress-questions.csv` and can be run with:
+
+```bash
+ME_AGENT_EVAL_PATH=data/eval/stress-questions.csv python scripts/run_eval.py
+python scripts/run_eval.py \
+  --eval-path data/eval/stress-questions.csv \
+  --output reports/stress_eval_results.json \
+  --html-report reports/stress_eval_report.html \
+  --markdown-report docs/full_system_test_report.md \
+  --title "ME Agent Stress Evaluation"
+```
+
+Existing JSON artifacts can be re-rendered without rerunning the model:
+
+```bash
+python scripts/render_eval_report.py \
+  eval_results.json \
+  reports/eval_report.html \
+  --markdown-report docs/full_system_test_report.md
+```
+
+Final measured results on 2026-07-03:
 
 | Mode | Accuracy | used_llm_rate | Avg latency | Max latency | Mean similarity | Mean token coverage |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Live DeepSeek (`deepseek-v4-flash`) | 1.00 | 1.00 | 2.9374s | 5.2371s | 0.6935 | 0.7248 |
+| Live DeepSeek (`deepseek-v4-flash`) | 1.00 | 1.00 | 3.5986s | 5.3028s | 0.7128 | 0.7346 |
+| Live DeepSeek stress set | 1.00 | 0.79 | 3.1127s | 8.5587s | 0.6520 | 0.8351 |
 | No-key extractive fallback | 0.70 | 0.00 | 0.0034s | 0.0119s | 0.5487 | 0.5704 |
 
-The offline score is intentionally reported as lower because the fallback is a
-generic extractor, not a hidden set of canned answers.
+The offline score reflects the generic extractive fallback path. The stress run
+includes two intentional out-of-scope cases and one provider timeout fallback
+while still passing deterministic fact/source/route checks.
+
+## Tier Coverage
+
+- **Tier 1:** Multi-source ECU-700/ECU-800 RAG, deterministic intelligent routing,
+  cross-document comparison retrieval, LangGraph control flow, MLflow pyfunc
+  packaging, and current 10/10 live evaluation under the 10-second target.
+- **Tier 2:** Installable Python package, modular source layout, unit tests,
+  validation commands, MLflow model artifacts, logged configuration metadata,
+  and documented performance/error-handling strategy.
+- **Tier 3:** Custom evaluation framework with MLflow metric/artifact logging,
+  deterministic stress metrics, a custom adversarial stress set, visual HTML eval
+  reports, low-confidence human-review flagging, and a concrete scalability
+  strategy in `docs/scalability_strategy.md`.
 
 ## Validation
 
-Recommended checks:
+Recommended checks from a fresh clone:
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+
 python -m compileall src tests scripts
 pytest -q
 pylint src/me_agent
-python scripts/run_eval.py
-python scripts/log_mlflow_model.py
-python scripts/load_mlflow_model.py
+me-agent-run-eval
+me-agent-log-model
+me-agent-load-model
 ```
+
+Equivalent script commands also work after installation, for example
+`python scripts/run_eval.py`. Without installing the package, prefix script
+commands with `PYTHONPATH=src` so Python can import the `src/me_agent` package.
 
 Current tests cover importability without hard dependency on `.env`, generic
 fallback behavior, out-of-domain routing, conditional graph branches, retrieval
 modes, vector index build-once behavior, generic evaluation fields, and MLflow
 model input handling.
+
+## Error Handling Evidence
+
+- Missing API key: `DeepSeekAnswerGenerator` falls back to grounded extractive
+  synthesis with `fallback_reason="missing_deepseek_client_or_key"`; offline
+  evaluation records this path separately from live model generation.
+- Empty query: `validate_input` rejects blank questions with `ValueError` and is
+  covered by unit tests.
+- Out-of-scope query: non-ECU questions route to `general`, skip retrieval, and
+  return a direct scope response.
+- Embedding fallback: `EmbeddingModel(backend="auto")` tries sentence-transformers
+  and falls back to normalized token hashing when local model dependencies are
+  missing or incompatible.
+- Vector fallback: `VectorStore` uses FAISS when available and numpy inner-product
+  search when FAISS is unavailable or source filtering is required.
+- Low confidence: the LangGraph workflow computes confidence from retrieval,
+  source coverage, and verifier support, then flags borderline answers for
+  human review instead of silently overclaiming.
 
 ## Limitations
 
@@ -150,4 +225,5 @@ model input handling.
 - Sentence-transformers may need a first-run model download unless hashing fallback is used.
 - FAISS is preferred, but numpy similarity fallback keeps offline runs from hard-crashing.
 - Reranking is future work; hybrid retrieval currently merges keyword-first and vector results.
+- Chunking is deterministic character-based splitting today; Markdown-aware table/section splitting is a planned improvement for larger manuals.
 - Live evaluation quality and latency depend on provider/network availability.

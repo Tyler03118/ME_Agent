@@ -53,5 +53,7 @@ def verify_answer(answer: str, retrieved_context: list[RetrievalResult]) -> Veri
 
 
 def _content_tokens(text: str) -> set[str]:
+    """Tokenize answer or context text after removing citation brackets."""
+
     cleaned = CITATION_PATTERN.sub(" ", text)
     return {token for token in _tokens(cleaned) if token not in STOPWORDS}

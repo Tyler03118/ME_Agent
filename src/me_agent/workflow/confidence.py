@@ -18,4 +18,6 @@ def compute_confidence(
 
 
 def _clamp(value: float) -> float:
+    """Restrict a score to the inclusive 0.0 to 1.0 range."""
+
     return max(0.0, min(1.0, value))
