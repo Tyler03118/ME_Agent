@@ -24,7 +24,7 @@ def test_router_classifies_npu_configuration() -> None:
 
 
 def test_router_sends_non_ecu_questions_to_general() -> None:
-    decision = DeterministicRouter().route("今天天气如何")
+    decision = DeterministicRouter().route("How's the weather today?")
 
     assert decision.category == "general"
     assert decision.required_sources == ()
@@ -44,3 +44,28 @@ def test_router_classifies_vs_phrasing_as_comparison() -> None:
     assert decision.category == "comparison"
     assert "ECU-700_Series_Manual.md" in decision.required_sources
     assert "ECU-800_Series_Base.md" in decision.required_sources
+
+
+def test_router_classifies_thermal_tolerance_paraphrase_as_comparison() -> None:
+    decision = DeterministicRouter().route("Which model has the strongest thermal tolerance?")
+
+    assert decision.category == "comparison"
+    assert "ECU-700_Series_Manual.md" in decision.required_sources
+    assert "ECU-800_Series_Base.md" in decision.required_sources
+    assert "ECU-800_Series_Plus.md" in decision.required_sources
+
+
+def test_router_classifies_remote_firmware_paraphrase_as_feature_availability() -> None:
+    decision = DeterministicRouter().route("Which models can receive remote firmware updates?")
+
+    assert decision.category == "feature_availability"
+    assert "ECU-700_Series_Manual.md" in decision.required_sources
+    assert "ECU-800_Series_Base.md" in decision.required_sources
+    assert "ECU-800_Series_Plus.md" in decision.required_sources
+
+
+def test_router_classifies_edge_ai_paraphrase_as_plus_lookup() -> None:
+    decision = DeterministicRouter().route("Can the AI-enhanced variant run edge inference?")
+
+    assert decision.category == "ecu_850b_lookup"
+    assert "ECU-800_Series_Plus.md" in decision.required_sources

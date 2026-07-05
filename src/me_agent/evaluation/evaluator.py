@@ -21,6 +21,9 @@ STOPWORDS = {
 }
 
 
+# Case loading and evaluation runner ----------------------------------------
+
+
 def load_evaluation_cases(csv_path: str | Path) -> list[EvaluationCase]:
     """Load evaluation cases from a CSV file.
 
@@ -72,7 +75,8 @@ def evaluate_cases(  # pylint: disable=too-many-locals
         # factual, source, and route checks below without changing the CSV loader.
         similarity = semantic_similarity(case.expected_answer, response.answer, scorer)
         coverage = token_coverage(case.expected_answer, response.answer)
-        fact_score = fact_recall(case.required_facts, response.answer)
+        required_facts = case.required_facts or infer_required_facts(case.expected_answer)
+        fact_score = fact_recall(required_facts, response.answer)
         forbidden_violations = forbidden_fact_violations(case.forbidden_facts, response.answer)
         source_score = source_match(case.expected_sources, response.sources)
         route_score = route_match(case.expected_route, response.route_category)
@@ -105,6 +109,9 @@ def evaluate_cases(  # pylint: disable=too-many-locals
     return results
 
 
+# Metric functions ----------------------------------------------------------
+
+
 def semantic_similarity(expected: str, actual: str, embedding_model: EmbeddingModel) -> float:
     """Compute cosine similarity between expected and actual answer embeddings."""
 
@@ -131,6 +138,36 @@ def fact_recall(required_facts: tuple[str, ...], actual: str) -> float:
         return 1.0
     matched = sum(1 for fact in required_facts if _fact_present(fact, actual))
     return round(matched / len(required_facts), 4)
+
+
+def infer_required_facts(expected: str) -> tuple[str, ...]:
+    """Extract technical facts from a golden answer for fact-first scoring.
+
+    The base challenge CSV does not include explicit Required_Facts columns, so
+    this parser extracts stable engineering facts from the expected answer:
+    model identifiers, numeric specifications, ECU feature acronyms, processor
+    families, and exact CLI commands. It stays generic and avoids question-id
+    rules while reducing false negatives when an answer is factually correct but
+    more complete than the reference wording.
+    """
+
+    patterns = (
+        r"\bECU-\d+[a-z]?\b",
+        r"\bme-driver-ctl\s+--[a-z0-9=-]+(?:\s+--[a-z0-9=-]+)*\b",
+        r"[+-]?\d+(?:\.\d+)?\s*(?:°C|GHz|MHz|Mbps|TOPS|GB|MB|KB|mA|A)\b",
+        r"\b(?:NPU|OTA|CAN FD|CAN|LPDDR\d|eMMC|SRAM)\b",
+        r"\bCortex-A\d+\b",
+    )
+    facts: list[str] = []
+    seen: set[str] = set()
+    for pattern in patterns:
+        for match in re.finditer(pattern, expected, flags=re.IGNORECASE):
+            fact = " ".join(match.group(0).split())
+            key = fact.lower()
+            if key not in seen:
+                seen.add(key)
+                facts.append(fact)
+    return tuple(facts)
 
 
 def forbidden_fact_violations(forbidden_facts: tuple[str, ...], actual: str) -> int:
@@ -168,14 +205,20 @@ def combined_evaluation_score(  # pylint: disable=too-many-arguments
 ) -> float:
     """Combine metrics for base and enhanced evaluation rows.
 
-    Basic rows use semantic similarity plus token coverage. Enhanced rows include
-    deterministic checks for required facts, forbidden claims, expected sources,
-    and expected route. Forbidden claims subtract a capped penalty because one
-    explicit contradiction can be more serious than a missing optional fact.
+    Basic rows combine semantic similarity, token coverage, and fact recall.
+    Enhanced rows also include explicit checks for forbidden claims, expected
+    sources, and expected route. Forbidden claims subtract a capped penalty
+    because one explicit contradiction can be more serious than a missing
+    optional fact.
     """
 
     if not enhanced_criteria:
-        return round(0.65 * semantic_similarity_score + 0.35 * token_coverage_score, 4)
+        return round(
+            0.45 * semantic_similarity_score
+            + 0.20 * token_coverage_score
+            + 0.35 * required_fact_recall_score,
+            4,
+        )
     penalty = min(0.35, 0.20 * forbidden_violations)
     score = (
         0.35 * semantic_similarity_score
@@ -186,6 +229,9 @@ def combined_evaluation_score(  # pylint: disable=too-many-arguments
         - penalty
     )
     return round(max(0.0, score), 4)
+
+
+# Summary, JSON artifact, and MLflow logging --------------------------------
 
 
 def summarize_evaluation(results: list[EvaluationResult]) -> dict[str, Any]:
@@ -263,6 +309,9 @@ def log_evaluation_to_mlflow(summary: dict[str, Any], artifact_path: str | Path)
     for name in metric_names:
         mlflow.log_metric(name, float(summary.get(name, 0.0)))
     mlflow.log_artifact(str(artifact_path))
+
+
+# Internal matching and formatting helpers ----------------------------------
 
 
 def _case_result_detail(result: EvaluationResult) -> dict[str, Any]:

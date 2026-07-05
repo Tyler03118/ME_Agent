@@ -117,10 +117,10 @@ package has not been installed yet, run them with `PYTHONPATH=src`.
 ## Evaluation
 
 Evaluation compares each golden answer to `Expected_Answer` using semantic
-similarity plus expected-token coverage. Stress cases can additionally provide
-`Required_Facts`, `Forbidden_Facts`, `Expected_Sources`, and `Expected_Route`,
-which enable deterministic fact recall, forbidden-fact violation, source-match,
-and route-match metrics.
+similarity, expected-token coverage, and inferred technical fact recall. Stress
+cases can additionally provide `Required_Facts`, `Forbidden_Facts`,
+`Expected_Sources`, and `Expected_Route`, which enable deterministic fact
+recall, forbidden-fact violation, source-match, and route-match metrics.
 
 `python scripts/run_eval.py` starts an MLflow run, logs metrics, logs the JSON
 result artifact, and can optionally produce a self-contained visual HTML report.
@@ -137,7 +137,6 @@ python scripts/run_eval.py \
   --eval-path data/eval/stress-questions.csv \
   --output reports/stress_eval_results.json \
   --html-report reports/stress_eval_report.html \
-  --markdown-report docs/full_system_test_report.md \
   --title "ME Agent Stress Evaluation"
 ```
 
@@ -146,27 +145,29 @@ Existing JSON artifacts can be re-rendered without rerunning the model:
 ```bash
 python scripts/render_eval_report.py \
   eval_results.json \
-  reports/eval_report.html \
-  --markdown-report docs/full_system_test_report.md
+  reports/eval_report.html
 ```
 
-Final measured results on 2026-07-03:
+Representative live results from the latest approved DeepSeek run on 2026-07-05:
 
 | Mode | Accuracy | used_llm_rate | Avg latency | Max latency | Mean similarity | Mean token coverage |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Live DeepSeek (`deepseek-v4-flash`) | 1.00 | 1.00 | 3.5986s | 5.3028s | 0.7128 | 0.7346 |
-| Live DeepSeek stress set | 1.00 | 0.79 | 3.1127s | 8.5587s | 0.6520 | 0.8351 |
-| No-key extractive fallback | 0.70 | 0.00 | 0.0034s | 0.0119s | 0.5487 | 0.5704 |
+| Live DeepSeek (`deepseek-v4-flash`) | 100% | 100% | 2.5614s | 4.1594s | 0.7049 | 0.7176 |
+| Live DeepSeek stress set | 100% | 79% | 2.1731s | 4.0309s | 0.6901 | 0.8279 |
 
-The offline score reflects the generic extractive fallback path. The stress run
-includes two intentional out-of-scope cases and one provider timeout fallback
-while still passing deterministic fact/source/route checks.
+Offline no-key evaluation is a smoke/degradation check for the generic
+extractive fallback path, not the main challenge scoring path. Read its current
+result from `eval_results_offline.json` after running the validation script. The
+stress run includes two intentional out-of-scope cases and one verifier-triggered
+grounded fallback for prompt-injection defense while still passing
+fact/source/route checks.
 
 ## Tier Coverage
 
 - **Tier 1:** Multi-source ECU-700/ECU-800 RAG, deterministic intelligent routing,
   cross-document comparison retrieval, LangGraph control flow, MLflow pyfunc
-  packaging, and current 10/10 live evaluation under the 10-second target.
+  packaging, and 10/10 live evaluation under the 10-second target in the latest
+  approved DeepSeek run.
 - **Tier 2:** Installable Python package, modular source layout, unit tests,
   validation commands, MLflow model artifacts, logged configuration metadata,
   and documented performance/error-handling strategy.
@@ -178,6 +179,22 @@ while still passing deterministic fact/source/route checks.
 ## Validation
 
 Recommended checks from a fresh clone:
+
+```bash
+./scripts/run_all_checks.sh
+```
+
+This script creates a local `.venv`, installs the package with development
+dependencies, runs import checks, unit tests, pylint, compile checks, and an
+offline evaluation smoke test. To include live DeepSeek evaluation and regenerate
+the JSON/HTML reports, provide a temporary API key and opt in explicitly:
+
+```bash
+export DEEPSEEK_API_KEY="<temporary-key>"
+RUN_LIVE_EVAL=1 ./scripts/run_all_checks.sh
+```
+
+The equivalent manual commands are:
 
 ```bash
 python -m venv .venv

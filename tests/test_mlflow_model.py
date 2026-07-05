@@ -20,7 +20,7 @@ def test_mlflow_model_predict_accepts_list_input() -> None:
 def test_mlflow_model_predict_accepts_dataframe_input() -> None:
     model = MEEngineeringAssistantModel()
 
-    predictions = model.predict(None, pd.DataFrame({"question": ["今天天气如何"]}))
+    predictions = model.predict(None, pd.DataFrame({"question": ["How's the weather today?"]}))
 
     assert predictions[0]["route_category"] == "general"
     assert "outside the ECU manual scope" in predictions[0]["answer"]

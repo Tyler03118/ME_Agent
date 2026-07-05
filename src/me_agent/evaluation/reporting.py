@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any
 
 
+# Public report API ----------------------------------------------------------
+
+
 def load_eval_payload(path: str | Path) -> dict[str, Any]:
     """Load an evaluation JSON artifact produced by ``write_evaluation_results``."""
 
@@ -168,6 +171,9 @@ def render_html_report(
 """
 
 
+# Data loading and summary sections -----------------------------------------
+
+
 def _read_optional_markdown(path: str | Path | None) -> str | None:
     """Load optional Markdown appendix text for embedding in the HTML report."""
 
@@ -229,6 +235,9 @@ def _render_category_rows(results: list[dict[str, Any]]) -> str:
     return "\n".join(rows)
 
 
+# Case-level rendering -------------------------------------------------------
+
+
 def _render_attention_rows(cases: list[dict[str, Any]], *, empty_message: str) -> str:
     """Render failed-case or human-review rows."""
 
@@ -241,7 +250,7 @@ def _render_attention_rows(cases: list[dict[str, Any]], *, empty_message: str) -
             f'<strong>{escape(str(case.get("question_id", "")))}</strong>'
             f'<span>{escape(str(case.get("category", "")))}</span>'
             f'<p>{escape(str(case.get("question", "")))}</p>'
-            f'<small>score {escape(_score(case.get("combined_score")))} | '
+            f'<small>score {escape(_case_score(case))} | '
             f'route {escape(str(case.get("route_category", "")))}</small>'
             "</div>"
         )
@@ -262,7 +271,7 @@ def _render_case_card(case: dict[str, Any]) -> str:
             <span class="case-id">{escape(str(case.get("question_id", "")))}</span>
             <span>{escape(str(case.get("category", "")))}</span>
             <strong>{escape(str(case.get("question", "")))}</strong>
-            <span class="case-score">{escape(_score(case.get("combined_score")))}</span>
+            <span class="case-score">{escape(_case_score(case))}</span>
           </summary>
           <div class="case-body">
             <div class="answer-grid">
@@ -277,7 +286,7 @@ def _render_case_card(case: dict[str, Any]) -> str:
             </div>
             <dl class="case-metrics">
               {_detail("Passed", str(case.get("passed")))}
-              {_detail("Combined score", _score(case.get("combined_score")))}
+              {_detail("Combined score", _case_score(case))}
               {_detail("Semantic similarity", _score(case.get("semantic_similarity")))}
               {_detail("Token coverage", _score(case.get("token_coverage")))}
               {_detail("Required fact recall", _score(case.get("required_fact_recall")))}
@@ -303,6 +312,9 @@ def _detail(label: str, value: str) -> str:
     return f"<dt>{escape(label)}</dt><dd>{escape(value)}</dd>"
 
 
+# Optional appendix ----------------------------------------------------------
+
+
 def _render_markdown_section(markdown_text: str | None) -> str:
     """Render the optional Markdown appendix section."""
 
@@ -316,6 +328,9 @@ def _render_markdown_section(markdown_text: str | None) -> str:
       </div>
       <pre class="markdown-report">{escape(markdown_text)}</pre>
     </section>"""
+
+
+# Formatting helpers ---------------------------------------------------------
 
 
 def _bar(label: str, value: Any) -> str:
@@ -350,9 +365,9 @@ def _count_ratio(summary: dict[str, Any], numerator: str, denominator: str) -> s
 
 
 def _percent(value: Any) -> str:
-    """Format a 0-to-1 score as a percentage string."""
+    """Format a 0-to-1 score as a whole-percentage string."""
 
-    return f"{_float(value) * 100:.1f}%"
+    return f"{_float(value) * 100:.0f}%"
 
 
 def _seconds(value: Any) -> str:
@@ -365,6 +380,22 @@ def _score(value: Any) -> str:
     """Format a metric score to four decimal places."""
 
     return f"{_float(value):.4f}"
+
+
+def _case_score(case: dict[str, Any]) -> str:
+    """Return the best available per-case score for current and legacy payloads."""
+
+    combined_score = case.get("combined_score")
+    if combined_score is not None:
+        return _score(combined_score)
+
+    semantic_similarity = case.get("semantic_similarity")
+    token_coverage = case.get("token_coverage")
+    if semantic_similarity is None or token_coverage is None:
+        return "n/a"
+
+    legacy_score = 0.65 * _float(semantic_similarity) + 0.35 * _float(token_coverage)
+    return _score(legacy_score)
 
 
 def _plain(value: Any) -> str:
@@ -389,6 +420,9 @@ def _mean(values) -> float:
     if not collected:
         return 0.0
     return sum(collected) / len(collected)
+
+
+# Embedded stylesheet --------------------------------------------------------
 
 
 _CSS = """

@@ -15,9 +15,16 @@ STOPWORDS = {
     "model", "series", "base", "plus", "md", "markdown", "evidence",
 }
 CITATION_PATTERN = re.compile(r"\[[^\]]+\]")
+MEASUREMENT_PATTERN = re.compile(
+    r"(?<![\w.])[+-]?\d+(?:\.\d+)?\s*(?:°\s*)?(?:c|gb|mb|kb|ghz|mhz|mbps|tops|ma|a)\b",
+    re.IGNORECASE,
+)
 
 
-def verify_answer(answer: str, retrieved_context: list[RetrievalResult]) -> VerificationResult:
+def verify_answer(  # pylint: disable=too-many-return-statements
+    answer: str,
+    retrieved_context: list[RetrievalResult],
+) -> VerificationResult:
     """Heuristically judge whether an answer is supported by retrieved chunks."""
 
     if not retrieved_context:
@@ -34,11 +41,22 @@ def verify_answer(answer: str, retrieved_context: list[RetrievalResult]) -> Veri
         )
 
     context_tokens = set()
+    context_measurements = set()
     for result in retrieved_context:
         context_tokens.update(_content_tokens(result.chunk.content))
+        context_measurements.update(_measurements(result.chunk.content))
     answer_tokens = _content_tokens(answer)
     if not answer_tokens:
         return VerificationResult("unsupported", 0.0, "The answer is empty.")
+
+    missing_measurements = _measurements(answer) - context_measurements
+    if missing_measurements:
+        missing = ", ".join(sorted(missing_measurements))
+        return VerificationResult(
+            "contradicted",
+            0.0,
+            f"Answer includes numeric fact(s) not present in retrieved context: {missing}.",
+        )
 
     overlap = len(answer_tokens & context_tokens) / len(answer_tokens)
     if overlap >= 0.6:
@@ -57,3 +75,13 @@ def _content_tokens(text: str) -> set[str]:
 
     cleaned = CITATION_PATTERN.sub(" ", text)
     return {token for token in _tokens(cleaned) if token not in STOPWORDS}
+
+
+def _measurements(text: str) -> set[str]:
+    """Extract normalized engineering measurements that must be evidence-backed."""
+
+    cleaned = CITATION_PATTERN.sub(" ", text).lower().replace("−", "-").replace("º", "°")
+    measurements: set[str] = set()
+    for match in MEASUREMENT_PATTERN.findall(cleaned):
+        measurements.add(re.sub(r"\s+", "", match).replace("°", ""))
+    return measurements

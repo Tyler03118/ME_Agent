@@ -35,6 +35,24 @@ def test_retriever_applies_source_filter() -> None:
     assert results[0].chunk.metadata["source"] == "plus.md"
 
 
+def test_keyword_retriever_expands_domain_synonyms_for_thermal_queries() -> None:
+    chunks = [
+        ManualChunk(
+            content="Overview for the ECU-850 platform and product family.",
+            metadata={"source": "overview.md"},
+        ),
+        ManualChunk(
+            content="| **Operating Temperature** | -40°C to **+105°C** |",
+            metadata={"source": "thermal.md"},
+        ),
+    ]
+
+    results = InMemoryKeywordRetriever(chunks).retrieve("strongest thermal tolerance")
+
+    assert results[0].chunk.metadata["source"] == "thermal.md"
+    assert "+105" in results[0].chunk.content
+
+
 def test_build_retriever_supports_keyword_vector_and_hybrid_modes() -> None:
     from me_agent.retrieval.retriever import (
         HybridRetriever,

@@ -6,12 +6,16 @@ import re
 from collections.abc import Iterable
 from typing import Protocol
 
+from me_agent.core.domain_terms import RETRIEVAL_QUERY_EXPANSION_GROUPS
 from me_agent.retrieval.embeddings import EmbeddingModel
 from me_agent.core.schemas import ManualChunk, RetrievalResult
 from me_agent.retrieval.vector_store import VectorStore
 
 TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+")
 SUPPORTED_RETRIEVER_MODES = {"keyword", "vector", "hybrid"}
+
+
+# Retriever implementations -------------------------------------------------
 
 
 class Retriever(Protocol):
@@ -52,7 +56,7 @@ class InMemoryKeywordRetriever:
     ) -> list[RetrievalResult]:
         """Return top chunks by normalized token overlap."""
 
-        query_tokens = _tokens(query)
+        query_tokens = _query_tokens(query)
         if not query_tokens:
             raise ValueError("query must contain at least one searchable token")
         limit = top_k or self.top_k
@@ -102,7 +106,7 @@ class InMemoryVectorRetriever:
             raise ValueError("query must contain at least one searchable token")
         limit = top_k or self.top_k
         scored = self.vector_store.search(
-            query,
+            _expanded_query_text(query),
             top_k=max(limit, len(required_sources or ())),
             required_sources=required_sources,
         )
@@ -159,6 +163,9 @@ class HybridRetriever:
         return _with_required_source_coverage(merged, required_sources, limit)
 
 
+# Factory -------------------------------------------------------------------
+
+
 def build_retriever(
     mode: str,
     chunks: Iterable[ManualChunk],
@@ -207,6 +214,9 @@ def build_retriever(
             f"Expected one of {sorted(SUPPORTED_RETRIEVER_MODES)}."
         )
     )
+
+
+# Ranking and source-coverage helpers ---------------------------------------
 
 
 def _candidate_chunks(
@@ -288,6 +298,26 @@ def _tokens(text: str) -> set[str]:
     """Tokenize text for keyword overlap scoring."""
 
     return {match.group(0).lower() for match in TOKEN_PATTERN.finditer(text)}
+
+
+def _query_tokens(text: str) -> set[str]:
+    """Tokenize a query and add deterministic domain synonym expansions."""
+
+    return _tokens(_expanded_query_text(text))
+
+
+def _expanded_query_text(text: str) -> str:
+    """Append domain synonyms that bridge user phrasing to manual wording."""
+
+    normalized = text.lower()
+    tokens = _tokens(normalized)
+    expansions: list[str] = []
+    for triggers, expansion in RETRIEVAL_QUERY_EXPANSION_GROUPS:
+        if tokens & set(triggers):
+            expansions.append(expansion)
+    if not expansions:
+        return text
+    return " ".join([text, *expansions])
 
 
 def _keyword_score(query_tokens: set[str], chunk_tokens: set[str]) -> float:

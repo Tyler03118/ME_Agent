@@ -3,11 +3,14 @@ from pathlib import Path
 from me_agent.evaluation import (
     fact_recall,
     forbidden_fact_violations,
+    infer_required_facts,
     load_evaluation_cases,
     route_match,
     source_match,
     summarize_evaluation,
     token_coverage,
+    render_html_report,
+    combined_evaluation_score,
 )
 
 
@@ -99,6 +102,83 @@ def test_fact_metrics_reward_required_facts_and_penalize_forbidden_facts() -> No
     assert fact_recall(("5 TOPS NPU", "4 GB LPDDR4"), answer) == 1.0
     assert fact_recall(("5 TOPS NPU", "32 GB eMMC"), answer) == 0.5
     assert forbidden_fact_violations(("OTA supported", "5 TOPS NPU"), answer) == 1
+
+
+def test_inferred_facts_capture_expected_technical_values() -> None:
+    expected = (
+        "The ECU-850b has three upgrades: NPU capable of 5 TOPS, "
+        "4 GB LPDDR4 RAM vs 2 GB, and Cortex-A53 cores at 1.5 GHz vs 1.2 GHz."
+    )
+
+    facts = infer_required_facts(expected)
+
+    assert "ECU-850b" in facts
+    assert "5 TOPS" in facts
+    assert "4 GB" in facts
+    assert "LPDDR4" in facts
+    assert "1.5 GHz" in facts
+
+
+def test_base_score_rewards_factually_complete_overcomplete_answers() -> None:
+    score = combined_evaluation_score(
+        semantic_similarity_score=0.3652,
+        token_coverage_score=0.5806,
+        required_fact_recall_score=0.9,
+        source_match_score=1.0,
+        route_match_score=1.0,
+        forbidden_violations=0,
+        enhanced_criteria=False,
+    )
+
+    assert score >= 0.5
+
+
+def test_html_report_formats_accuracy_as_percentage() -> None:
+    payload = {
+        "summary": {
+            "total_cases": 1,
+            "passed_cases": 1,
+            "failed_cases_count": 0,
+            "accuracy": 1.0,
+            "used_llm_rate": 1.0,
+            "avg_latency_seconds": 0.1,
+            "max_latency_seconds": 0.1,
+            "fallback_cases": 0,
+            "mean_required_fact_recall": 1.0,
+            "mean_source_match": 1.0,
+            "mean_route_match": 1.0,
+            "mean_semantic_similarity": 0.9,
+            "mean_token_coverage": 0.9,
+            "forbidden_fact_violations": 0,
+        },
+        "results": [
+            {
+                "question_id": "1",
+                "category": "Smoke",
+                "question": "Question?",
+                "actual_answer": "Answer.",
+                "combined_score": 0.9,
+                "semantic_similarity": 0.9,
+                "token_coverage": 0.9,
+                "required_fact_recall": 1.0,
+                "source_match": 1.0,
+                "route_match": 1.0,
+                "passed": True,
+                "used_llm": True,
+                "latency_seconds": 0.1,
+                "sources": [],
+                "route_category": "general",
+                "verifier_status": "supported",
+                "needs_human_review": False,
+            }
+        ],
+    }
+
+    html = render_html_report(payload)
+
+    assert "<strong>100%</strong>" in html
+    assert "<td>100%</td>" in html
+    assert "<strong>1.00</strong>" not in html
 
 
 def test_source_and_route_match_are_deterministic() -> None:

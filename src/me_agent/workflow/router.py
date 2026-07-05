@@ -12,7 +12,35 @@ ECU_800_PLUS_SOURCE = "ECU-800_Series_Plus.md"
 ALL_SOURCES = (ECU_700_SOURCE, ECU_800_BASE_SOURCE, ECU_800_PLUS_SOURCE)
 IN_SCOPE_TERMS = (
     "ecu", "can", "ota", "over-the-air", "npu", "ram", "memory", "storage", "temperature",
-    "power", "lpddr", "emmc", "driver", "me-driver", "cortex", "flash",
+    "power", "lpddr", "emmc", "driver", "me-driver", "cortex", "flash", "firmware",
+    "accelerator", "neural",
+)
+DOMAIN_SCOPE_PHRASES = (
+    "thermal tolerance", "thermal tolerant", "high-temperature", "high temperature",
+    "operating temperature", "temperature range", "harsh environment",
+    "harshest environment", "environmental tolerance", "remote firmware",
+    "firmware update", "firmware updates", "remote update", "remote updates",
+    "edge ai", "edge inference", "ai-enhanced", "ai enhanced", "load current",
+    "full load", "can speed", "bus speed", "storage capacity", "memory capacity",
+)
+COMPARISON_TERMS = (
+    "compare", "comparison", "difference", "differences", "changed specs", "between",
+    " vs ", "across", "all models", "which ecu", "which model", "which models",
+    "which variant", "which variants", "harshest", "strongest", "best", "highest",
+    "lowest", "most", "least", "storage capacity", "thermal tolerance",
+    "operating temperature", "temperature range", "harsh environment", "environmental tolerance",
+)
+THERMAL_SCOPE_TERMS = (
+    "thermal", "tolerance", "temperature", "operating", "environment", "environmental",
+    "harsh", "hot", "cold",
+)
+FIRMWARE_UPDATE_TERMS = (
+    "ota", "over-the-air", "remote firmware", "firmware update", "firmware updates",
+    "remote update", "remote updates", "receive updates",
+)
+AI_CAPABILITY_TERMS = (
+    "npu", "ai", "ai-enhanced", "ai enhanced", "edge ai", "edge inference",
+    "inference", "accelerator", "neural", "tops",
 )
 
 
@@ -39,36 +67,29 @@ class DeterministicRouter:
         required_sources = sources
         rationale = "No specific ECU route matched."
 
-        if _contains_any(normalized, ("enable", "configuration", "driver command", "npu")):
+        if _contains_any(normalized, ("enable", "configuration", "driver command")):
             # NPU enablement and driver-command questions are specific to the
             # ECU-850b addendum, but base ECU-850 context may still be included
             # when the query names both models.
-            category = (
-                "configuration"
-                if "enable" in normalized or "driver" in normalized
-                else "ecu_850b_lookup"
-            )
+            category = "configuration"
             required_sources = sources or {ECU_800_PLUS_SOURCE}
             rationale = "NPU and driver-command queries require the ECU-800 plus addendum."
-        elif _contains_any(normalized, ("ota", "over-the-air")):
+        elif _contains_any(normalized, FIRMWARE_UPDATE_TERMS):
             # Feature-availability questions require both positive and negative
             # evidence; forcing all manuals helps answer "which models support X".
             category = "feature_availability"
             required_sources = set(ALL_SOURCES)
             rationale = "Feature availability requires positive and negative evidence."
-        elif _contains_any(
-            normalized,
-            (
-                "compare", "comparison", "difference", "differences", "changed specs",
-                "between", " vs ", "across", "all models", "which ecu", "harshest",
-                "storage capacity",
-            ),
-        ):
+        elif _contains_any(normalized, COMPARISON_TERMS):
             # Comparison queries are deliberately broad. A one-source answer can
             # be fluent but incomplete when the user asks across ECU families.
             category = "comparison"
             required_sources = sources or set(ALL_SOURCES)
             rationale = "Comparison queries need coverage across all relevant models."
+        elif _contains_any(normalized, AI_CAPABILITY_TERMS):
+            category = "ecu_850b_lookup"
+            required_sources = sources or {ECU_800_PLUS_SOURCE}
+            rationale = "AI acceleration and edge inference details live in the plus addendum."
         elif re.search(r"\becu-850b\b", normalized):
             category = "ecu_850b_lookup"
             required_sources = sources or {ECU_800_BASE_SOURCE, ECU_800_PLUS_SOURCE}
@@ -95,17 +116,28 @@ class DeterministicRouter:
             sources.add(ECU_800_BASE_SOURCE)
         if re.search(r"\becu-850b\b", normalized_query):
             sources.add(ECU_800_PLUS_SOURCE)
-        if _contains_any(normalized_query, ("all models", "storage", "harshest", "which ecu")):
+        if _contains_any(
+            normalized_query,
+            ("all models", "storage", "harshest", "which ecu", "which model", "which models"),
+        ):
             sources.update(ALL_SOURCES)
-        if "temperature" in normalized_query and not sources:
+        if _contains_any(normalized_query, THERMAL_SCOPE_TERMS):
             sources.update(ALL_SOURCES)
+        if _contains_any(normalized_query, FIRMWARE_UPDATE_TERMS):
+            sources.update(ALL_SOURCES)
+        if _contains_any(normalized_query, AI_CAPABILITY_TERMS) and not sources:
+            sources.add(ECU_800_PLUS_SOURCE)
         return sources
 
 
 def _is_ecu_manual_query(text: str) -> bool:
     """Return whether text appears answerable from ECU manuals."""
 
-    return _contains_any(text, IN_SCOPE_TERMS) or bool(re.search(r"\becu[- ]?\d+\w*\b", text))
+    return (
+        _contains_any(text, IN_SCOPE_TERMS)
+        or _contains_any(text, DOMAIN_SCOPE_PHRASES)
+        or bool(re.search(r"\becu[- ]?\d+\w*\b", text))
+    )
 
 
 def _contains_any(text: str, needles: tuple[str, ...]) -> bool:

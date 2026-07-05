@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from me_agent.core.config import AgentConfig
+from me_agent.core.domain_terms import GENERATION_QUERY_EXPANSION_GROUPS
 from me_agent.retrieval.embeddings import tokenize
 from me_agent.core.schemas import RetrievalResult, RouteDecision
 
@@ -16,6 +17,9 @@ STOPWORDS = {
     "is", "it", "much", "of", "on", "or", "the", "to", "what", "which", "with", "does", "do",
 }
 SENTENCE_PATTERN = re.compile(r"(?<=[.!?])\s+|\n+")
+
+
+# Public generation API -----------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -103,6 +107,9 @@ class DeepSeekAnswerGenerator:
         )
 
 
+# Deterministic fallback path -----------------------------------------------
+
+
 def synthesize_deterministic(
     question: str,
     retrieved_context: Sequence[RetrievalResult],
@@ -138,7 +145,7 @@ def _ranked_sentences(
             seen.add(normalized)
             sentence_tokens = set(_content_tokens(normalized))
             overlap = len(query_tokens & sentence_tokens) / max(len(query_tokens), 1)
-            score = overlap + 0.10 * result.score
+            score = overlap + _domain_fact_bonus(question, normalized) + 0.10 * result.score
             if score > 0:
                 ranked.append((normalized, score))
     ranked.sort(key=lambda item: item[1], reverse=True)
@@ -166,11 +173,43 @@ def _split_sentences(text: str) -> list[str]:
 def _content_tokens(text: str) -> list[str]:
     """Return question/content tokens useful for fallback ranking."""
 
-    return [
+    tokens = [
         token
         for token in tokenize(text)
         if token not in STOPWORDS and token != "ecu" and not token.isdigit()
     ]
+    token_set = set(tokens)
+    for triggers, expansion in GENERATION_QUERY_EXPANSION_GROUPS:
+        if token_set & set(triggers):
+            tokens.extend(tokenize(expansion))
+    return tokens
+
+
+def _domain_fact_bonus(question: str, sentence: str) -> float:
+    """Boost manual rows that express a domain synonym targeted by the query."""
+
+    query = question.lower()
+    text = sentence.lower()
+    bonus = 0.0
+    if _contains_any(query, ("thermal", "tolerance", "environment", "temperature")):
+        if _contains_any(text, ("operating temperature", "operating temp", "+105", "+85")):
+            bonus += 0.45
+    if _contains_any(query, ("remote", "firmware", "update", "ota")):
+        if _contains_any(text, ("ota", "over-the-air", "updates", "firmware")):
+            bonus += 0.35
+    if _contains_any(query, ("edge", "inference", "ai", "accelerator", "neural")):
+        if _contains_any(text, ("npu", "edge ai", "ai accelerator", "tops")):
+            bonus += 0.35
+    return bonus
+
+
+def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
+    """Return whether any phrase appears in lower-cased text."""
+
+    return any(needle in text for needle in needles)
+
+
+# Prompt construction for the live model ------------------------------------
 
 
 def _normalize_model_text(answer: str) -> str:
@@ -236,6 +275,9 @@ def _evidence_lines(
             scored.append((overlap + table_bonus + 0.05 * result.score, evidence_line))
     scored.sort(key=lambda item: item[0], reverse=True)
     return [line for _score, line in scored[:limit]]
+
+
+# Shared response formatting helpers ----------------------------------------
 
 
 def _sources(retrieved_context: Sequence[RetrievalResult]) -> tuple[str, ...]:

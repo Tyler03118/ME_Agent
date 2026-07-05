@@ -20,7 +20,11 @@ from me_agent.ingestion.chunking import MarkdownChunker
 from me_agent.core.config import AgentConfig
 from me_agent.ingestion.data_loader import MarkdownManualLoader
 from me_agent.workflow.hitl import human_review_decision
-from me_agent.generation.llm import DeepSeekAnswerGenerator, GenerationResult
+from me_agent.generation.llm import (
+    DeepSeekAnswerGenerator,
+    GenerationResult,
+    synthesize_deterministic,
+)
 from me_agent.retrieval.retriever import Retriever, build_retriever
 from me_agent.workflow.router import DeterministicRouter
 from me_agent.core.schemas import (
@@ -31,6 +35,9 @@ from me_agent.core.schemas import (
     VerificationResult,
 )
 from me_agent.generation.verifier import verify_answer
+
+
+# Graph state ----------------------------------------------------------------
 
 
 class AgentState(TypedDict):
@@ -49,6 +56,9 @@ class AgentState(TypedDict):
     confidence: NotRequired[float]
     retry_count: NotRequired[int]
     response: NotRequired[AgentResponse]
+
+
+# Public assistant API -------------------------------------------------------
 
 
 class EngineeringAssistant:
@@ -112,6 +122,8 @@ class EngineeringAssistant:
         result = self.compiled_graph.invoke({"question": question, "retry_count": 0})
         return result["response"]
 
+    # Graph construction -----------------------------------------------------
+
     def _build_graph(self) -> CompiledStateGraph:
         """Build the graph once so each request executes a stable control flow."""
 
@@ -158,6 +170,8 @@ class EngineeringAssistant:
         graph.add_edge("human_review", END)
         graph.add_edge("finalize_response", END)
         return graph.compile()
+
+    # Node handlers ----------------------------------------------------------
 
     @staticmethod
     def _validate_input(state: AgentState) -> AgentState:
@@ -230,6 +244,8 @@ class EngineeringAssistant:
         )
         return {"retrieved_context": results, "retry_count": state.get("retry_count", 0) + 1}
 
+    # Branch decisions -------------------------------------------------------
+
     def _retrieval_branch(self, state: AgentState) -> str:
         """Decide whether the graph should retry retrieval before generation."""
 
@@ -254,10 +270,22 @@ class EngineeringAssistant:
     def _verify_answer(state: AgentState) -> AgentState:
         """Evaluate whether the generated answer is supported by context."""
 
+        generation = state["generation"]
         verification = verify_answer(
-            state["generation"].answer,
+            generation.answer,
             state.get("retrieved_context", []),
         )
+        if generation.used_llm and verification.status in {"unsupported", "contradicted"}:
+            safe_generation = GenerationResult(
+                synthesize_deterministic(state["question"], state.get("retrieved_context", [])),
+                used_llm=False,
+                fallback_reason=f"verification_{verification.status}",
+            )
+            safe_verification = verify_answer(
+                safe_generation.answer,
+                state.get("retrieved_context", []),
+            )
+            return {"generation": safe_generation, "verification": safe_verification}
         return {"verification": verification}
 
     @staticmethod
@@ -285,6 +313,8 @@ class EngineeringAssistant:
             threshold=self.config.confidence_threshold,
         )
         return "human_review" if review.needs_human_review else "finalize"
+
+    # Final response construction -------------------------------------------
 
     def _human_review(self, state: AgentState) -> AgentState:
         """Finalize a response with human-review metadata forced on."""
@@ -320,6 +350,9 @@ class EngineeringAssistant:
         )
 
 
+# Retrieval diagnostics ------------------------------------------------------
+
+
 def _average_score(results: list[RetrievalResult]) -> float:
     """Return the average retriever score for confidence and retry decisions."""
 
@@ -346,6 +379,9 @@ def _sources(results: list[RetrievalResult]) -> tuple[str, ...]:
         if isinstance(source, str) and source not in seen:
             seen.append(source)
     return tuple(seen)
+
+
+# CLI entry point ------------------------------------------------------------
 
 
 def main() -> None:
