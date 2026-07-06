@@ -14,7 +14,7 @@ latency, fallback, and verifier signals.
 | --- | --- | ---: |
 | `reports/eval_results.json` | Live DeepSeek run on the 10 challenge questions | 10/10 passed |
 | `reports/eval_report.html` | Visual report rendered from live JSON | Generated |
-| `reports/eval_results_offline.json` | No-key fallback smoke run on the 10 challenge questions | 9/10 passed |
+| `reports/eval_results_offline.json` | No-key fallback smoke run on the 10 challenge questions | 7/10 passed |
 | `reports/stress_eval_results.json` | Live stress set with enhanced criteria | 14/14 passed |
 | `reports/stress_eval_report.html` | Visual report rendered from stress JSON | Generated |
 
@@ -23,7 +23,7 @@ Latest recorded metrics:
 | Run | Cases | Accuracy | used_llm_rate | Fallback cases | Avg latency | Max latency | Mean fact recall | Source match | Route match | Forbidden violations |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Live challenge | 10 | 1.0000 | 1.0000 | 0 | 3.2101s | 6.9711s | 0.8983 | 1.0000 | 1.0000 | 0 |
-| Offline no-key | 10 | 0.9000 | 0.0000 | 10 | 0.0031s | 0.0107s | 0.6623 | 1.0000 | 1.0000 | 0 |
+| Offline no-key | 10 | 0.7000 | 0.0000 | 10 | 0.0026s | 0.0062s | 0.6623 | 1.0000 | 1.0000 | 0 |
 | Live stress | 14 | 1.0000 | 0.7857 | 3 | 2.5009s | 5.7232s | 0.9643 | 0.9643 | 0.9286 | 0 |
 
 ## Evaluation Pipeline
@@ -88,7 +88,7 @@ The stress CSV can add executable criteria:
 
 ## Scoring Formula
 
-The default pass threshold is `ME_AGENT_EVAL_PASS_THRESHOLD`, currently `0.45`
+The default pass threshold is `ME_AGENT_EVAL_PASS_THRESHOLD`, currently `0.55`
 from `AgentConfig` unless overridden.
 
 Base rows use:
@@ -129,7 +129,7 @@ flowchart TD
     B --> B2["Main challenge score: 10/10"]
 
     C --> C1["API key unavailable"]
-    C --> C2["Extractive fallback smoke test: 9/10"]
+    C --> C2["Extractive fallback smoke test: 7/10"]
 
     D --> D1["Enhanced structured fields"]
     D --> D2["Adversarial and edge cases: 14/14"]

@@ -166,12 +166,12 @@ python scripts/render_eval_report.py \
   reports/eval_report.html
 ```
 
-Representative live results from the latest approved DeepSeek run on 2026-07-05:
+Representative live results from the latest recorded DeepSeek artifacts:
 
 | Mode | Accuracy | used_llm_rate | Avg latency | Max latency | Mean similarity | Mean token coverage |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Live DeepSeek (`deepseek-v4-flash`) | 100% | 100% | 2.5614s | 4.1594s | 0.7049 | 0.7176 |
-| Live DeepSeek stress set | 100% | 79% | 2.1731s | 4.0309s | 0.6901 | 0.8279 |
+| Live DeepSeek (`deepseek-v4-flash`) | 100% | 100% | 3.2101s | 6.9711s | 0.7347 | 0.7233 |
+| Live DeepSeek stress set | 100% | 79% | 2.5009s | 5.7232s | 0.6907 | 0.8509 |
 
 Offline no-key evaluation is a smoke/degradation check for the generic
 extractive fallback path, not the main challenge scoring path. Read its current

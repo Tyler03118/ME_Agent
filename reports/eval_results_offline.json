@@ -1,17 +1,17 @@
 {
   "summary": {
     "total_cases": 10,
-    "passed_cases": 9,
-    "failed_cases_count": 1,
-    "accuracy": 0.9,
+    "passed_cases": 7,
+    "failed_cases_count": 3,
+    "accuracy": 0.7,
     "used_llm_cases": 0,
     "used_llm_rate": 0.0,
     "fallback_cases": 10,
     "fallback_reasons": {
       "missing_deepseek_client_or_key": 10
     },
-    "avg_latency_seconds": 0.0031,
-    "max_latency_seconds": 0.0107,
+    "avg_latency_seconds": 0.0026,
+    "max_latency_seconds": 0.0062,
     "mean_semantic_similarity": 0.5985,
     "mean_token_coverage": 0.6181,
     "mean_required_fact_recall": 0.6623,
@@ -37,7 +37,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0107,
+        "latency_seconds": 0.0062,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
@@ -70,7 +70,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0018,
+        "latency_seconds": 0.002,
         "sources": [
           "ECU-800_Series_Base.md"
         ],
@@ -101,7 +101,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.002,
+        "latency_seconds": 0.0017,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
@@ -132,7 +132,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0022,
+        "latency_seconds": 0.0026,
         "sources": [
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
@@ -164,7 +164,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0022,
+        "latency_seconds": 0.0024,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md"
@@ -196,7 +196,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0017,
+        "latency_seconds": 0.0018,
         "sources": [
           "ECU-800_Series_Plus.md"
         ],
@@ -223,11 +223,11 @@
         "source_match": 1.0,
         "route_match": 1.0,
         "combined_score": 0.5416,
-        "passed": true,
+        "passed": false,
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0031,
+        "latency_seconds": 0.0028,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
@@ -260,7 +260,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.003,
+        "latency_seconds": 0.0026,
         "sources": [
           "ECU-700_Series_Manual.md",
           "ECU-800_Series_Base.md",
@@ -289,7 +289,7 @@
         "source_match": 1.0,
         "route_match": 1.0,
         "combined_score": 0.4559,
-        "passed": true,
+        "passed": false,
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
@@ -359,7 +359,7 @@
         "retriever_mode": "hybrid",
         "used_llm": false,
         "fallback_reason": "missing_deepseek_client_or_key",
-        "latency_seconds": 0.0022,
+        "latency_seconds": 0.0026,
         "sources": [
           "ECU-800_Series_Base.md",
           "ECU-800_Series_Plus.md"
@@ -370,6 +370,72 @@
         "source_diagnostic": 2,
         "route_diagnostic": "comparison",
         "confidence": 0.7667,
+        "verifier_status": "supported",
+        "needs_human_review": false
+      },
+      {
+        "question_id": "7",
+        "category": "Feature Availability",
+        "question": "Which ECU models support Over-the-Air (OTA) updates?",
+        "expected_answer": "OTA updates are supported by the ECU-800 Series (ECU-850 and ECU-850b). The ECU-700 Series (ECU-750) does not support OTA updates, as explicitly stated in its documentation.",
+        "actual_answer": "Over-the-Air (OTA) updates are not supported on this hardware platform. Over-the-Air (OTA) Update Capability The ECU-800 Series is our next-generation platform for advanced automotive applications, including ADAS and infotainment. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+        "agent_answer": "Over-the-Air (OTA) updates are not supported on this hardware platform. Over-the-Air (OTA) Update Capability The ECU-800 Series is our next-generation platform for advanced automotive applications, including ADAS and infotainment. Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+        "semantic_similarity": 0.6056,
+        "token_coverage": 0.4706,
+        "required_fact_recall": 0.5,
+        "forbidden_fact_violations": 0,
+        "source_match": 1.0,
+        "route_match": 1.0,
+        "combined_score": 0.5416,
+        "passed": false,
+        "retriever_mode": "hybrid",
+        "used_llm": false,
+        "fallback_reason": "missing_deepseek_client_or_key",
+        "latency_seconds": 0.0028,
+        "sources": [
+          "ECU-700_Series_Manual.md",
+          "ECU-800_Series_Base.md",
+          "ECU-800_Series_Plus.md"
+        ],
+        "expected_sources": [],
+        "route_category": "feature_availability",
+        "expected_route": "",
+        "source_diagnostic": 3,
+        "route_diagnostic": "feature_availability",
+        "confidence": 0.7222,
+        "verifier_status": "supported",
+        "needs_human_review": false
+      },
+      {
+        "question_id": "9",
+        "category": "Operating Environment",
+        "question": "Which ECU can operate in the harshest temperature conditions?",
+        "expected_answer": "The ECU-850 and ECU-850b (800 series) can operate in the harshest temperature conditions, with an operating range of -40\u00b0C to +105\u00b0C. The ECU-750 (700 series) has a more limited range of -40\u00b0C to +85\u00b0C, making it 20\u00b0C less tolerant at the high end.",
+        "actual_answer": "**Operating Temperature** -40\u00b0C to **+85\u00b0C** **Operating Temp.** -40\u00b0C to **+105\u00b0C** **Operating Temp.** -40\u00b0C to +105\u00b0C Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+        "agent_answer": "**Operating Temperature** -40\u00b0C to **+85\u00b0C** **Operating Temp.** -40\u00b0C to **+105\u00b0C** **Operating Temp.** -40\u00b0C to +105\u00b0C Sources: ECU-700_Series_Manual.md, ECU-800_Series_Base.md, ECU-800_Series_Plus.md.",
+        "semantic_similarity": 0.5506,
+        "token_coverage": 0.3846,
+        "required_fact_recall": 0.375,
+        "forbidden_fact_violations": 0,
+        "source_match": 1.0,
+        "route_match": 1.0,
+        "combined_score": 0.4559,
+        "passed": false,
+        "retriever_mode": "hybrid",
+        "used_llm": false,
+        "fallback_reason": "missing_deepseek_client_or_key",
+        "latency_seconds": 0.0027,
+        "sources": [
+          "ECU-700_Series_Manual.md",
+          "ECU-800_Series_Base.md",
+          "ECU-800_Series_Plus.md"
+        ],
+        "expected_sources": [],
+        "route_category": "comparison",
+        "expected_route": "",
+        "source_diagnostic": 3,
+        "route_diagnostic": "comparison",
+        "confidence": 0.7206,
         "verifier_status": "supported",
         "needs_human_review": false
       }
@@ -394,7 +460,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0107,
+      "latency_seconds": 0.0062,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
@@ -427,7 +493,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0018,
+      "latency_seconds": 0.002,
       "sources": [
         "ECU-800_Series_Base.md"
       ],
@@ -458,7 +524,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.002,
+      "latency_seconds": 0.0017,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],
@@ -489,7 +555,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0022,
+      "latency_seconds": 0.0026,
       "sources": [
         "ECU-800_Series_Base.md",
         "ECU-800_Series_Plus.md"
@@ -521,7 +587,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0022,
+      "latency_seconds": 0.0024,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md"
@@ -553,7 +619,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0017,
+      "latency_seconds": 0.0018,
       "sources": [
         "ECU-800_Series_Plus.md"
       ],
@@ -580,11 +646,11 @@
       "source_match": 1.0,
       "route_match": 1.0,
       "combined_score": 0.5416,
-      "passed": true,
+      "passed": false,
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.0031,
+      "latency_seconds": 0.0028,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
@@ -617,7 +683,7 @@
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
-      "latency_seconds": 0.003,
+      "latency_seconds": 0.0026,
       "sources": [
         "ECU-700_Series_Manual.md",
         "ECU-800_Series_Base.md",
@@ -646,7 +712,7 @@
       "source_match": 1.0,
       "route_match": 1.0,
       "combined_score": 0.4559,
-      "passed": true,
+      "passed": false,
       "retriever_mode": "hybrid",
       "used_llm": false,
       "fallback_reason": "missing_deepseek_client_or_key",
