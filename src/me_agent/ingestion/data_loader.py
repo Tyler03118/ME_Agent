@@ -13,7 +13,7 @@ ECU_MODEL_PATTERN = re.compile(r"\bECU-\d{3}[A-Za-z]?\b")
 
 
 class MarkdownManualLoader:
-    """Load Markdown ECU manuals from a local directory."""
+    """Load Markdown ECU manuals and attach lightweight metadata."""
 
     def __init__(self, manual_dir: str | Path, pattern: str = "*.md") -> None:
         """Store the manual directory and glob pattern used by ``load``."""
@@ -22,7 +22,14 @@ class MarkdownManualLoader:
         self.pattern = pattern
 
     def load(self) -> list[ManualDocument]:
-        """Read Markdown files in deterministic order and attach metadata."""
+        """Read Markdown files from ``manual_dir``.
+
+        Steps:
+        - fail early if ``manual_dir`` is missing or not a directory;
+        - sort matching Markdown paths so runs are reproducible;
+        - read each file as UTF-8;
+        - return ``ManualDocument`` objects with extracted metadata.
+        """
 
         if not self.manual_dir.exists():
             raise FileNotFoundError(f"Manual directory does not exist: {self.manual_dir}")
@@ -40,10 +47,13 @@ class MarkdownManualLoader:
 
     @staticmethod
     def _metadata(path: Path, content: str) -> dict[str, str | None]:
-        """Build citation, routing, and reporting metadata for one manual.
+        """Extract the metadata fields used downstream.
 
-        The filename remains the primary citation key. Product family and model
-        are best-effort labels used for filtering and diagnostics.
+        Returned keys:
+        - ``source``: exact filename shown in answers and reports;
+        - ``document_id``: optional ID from the manual header;
+        - ``product_family``: broad family such as ECU-700 or ECU-800;
+        - ``model``: most specific ECU model found in filename or content.
         """
 
         text = f"{path.name}\n{content}"
@@ -58,7 +68,7 @@ class MarkdownManualLoader:
 
 
 def _extract_product_family(text: str) -> str | None:
-    """Return the ECU product family mentioned in file name or content."""
+    """Find the broad ECU family name in a filename-plus-content string."""
 
     for family in ("ECU-700", "ECU-800"):
         if family.lower() in text.lower():
@@ -67,10 +77,12 @@ def _extract_product_family(text: str) -> str | None:
 
 
 def _extract_model(text: str, product_family: str | None) -> str | None:
-    """Return the most specific ECU model identifier found in the text.
+    """Find the most specific ECU model ID in the manual text.
 
-    Specific models such as ECU-850b are preferred over family names such as
-    ECU-800 because model-level routing is more selective.
+    Example:
+    - if both ``ECU-800`` and ``ECU-850b`` appear, return ``ECU-850b``;
+    - if only a family-level match appears, return that match;
+    - if nothing looks like an ECU model, return ``None``.
     """
 
     matches = ECU_MODEL_PATTERN.findall(text)

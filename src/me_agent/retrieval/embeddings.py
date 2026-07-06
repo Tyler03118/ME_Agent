@@ -24,7 +24,13 @@ class EmbeddingInfo:
 
 
 class EmbeddingModel:
-    """Encode text with sentence-transformers and a generic offline fallback."""
+    """Small wrapper that always returns usable embedding vectors.
+
+    Backend behavior:
+    - use sentence-transformers when it is installed and compatible;
+    - use deterministic token hashing when offline or dependencies are missing;
+    - expose ``self.info`` so reports can show which backend actually ran.
+    """
 
     def __init__(
         self,
@@ -42,11 +48,12 @@ class EmbeddingModel:
         self.info = self._load_backend()
 
     def encode(self, texts: list[str]) -> np.ndarray:
-        """Encode texts as L2-normalized float32 vectors.
+        """Turn a list of strings into normalized ``float32`` vectors.
 
-        Both the sentence-transformers backend and hashing fallback return the
-        same normalized shape, so vector search can use cosine-style inner
-        product scoring without caring which backend is active.
+        Flow:
+        - sentence-transformers path: call the loaded model, then normalize;
+        - fallback path: hash tokens into a fixed-size vector, then normalize;
+        - both paths return rows that can be compared with inner product.
         """
 
         if self._model is not None:
@@ -59,11 +66,13 @@ class EmbeddingModel:
         return _hashing_encode(texts, self.fallback_dimensions)
 
     def _load_backend(self) -> EmbeddingInfo:
-        """Load sentence-transformers when possible, otherwise use hashing.
+        """Choose the embedding backend at startup.
 
-        Known optional dependency incompatibilities are detected before import,
-        which avoids noisy transformer/torch warnings and keeps local evaluation
-        on the deterministic fallback path.
+        Decision order:
+        - if config explicitly asks for hashing, return hashing immediately;
+        - if optional packages look incompatible, skip the import;
+        - otherwise try sentence-transformers with local files by default;
+        - on any failure, return hashing plus the failure type in metadata.
         """
 
         if self.requested_backend in {"hashing", "sparse", "fallback"}:
@@ -97,17 +106,19 @@ class EmbeddingModel:
 
 
 def tokenize(text: str) -> list[str]:
-    """Tokenize text into lower-case alphanumeric terms."""
+    """Return lowercase alphanumeric tokens used by hashing and scoring."""
 
     return [match.group(0).lower() for match in TOKEN_PATTERN.finditer(text)]
 
 
 def _hashing_encode(texts: list[str], dimensions: int) -> np.ndarray:
-    """Encode text with signed token hashing for deterministic offline vectors.
+    """Encode text without downloading a model.
 
-    The first half of each token digest chooses the vector bucket; a later byte
-    chooses the sign. Signed hashing reduces the directional bias that plain
-    positive counts would introduce after normalization.
+    For each token:
+    - hash the token with BLAKE2b;
+    - use part of the digest to choose a vector index;
+    - use another digest byte to add either ``+1`` or ``-1``;
+    - normalize the final row so dot product behaves like cosine similarity.
     """
 
     vectors = np.zeros((len(texts), dimensions), dtype=np.float32)
@@ -121,7 +132,7 @@ def _hashing_encode(texts: list[str], dimensions: int) -> np.ndarray:
 
 
 def _normalize(vectors: np.ndarray) -> np.ndarray:
-    """L2-normalize vectors while keeping empty-string rows stable."""
+    """Scale each vector row to length 1 while keeping zero rows as zero."""
 
     if vectors.size == 0:
         return vectors.astype(np.float32)
@@ -131,7 +142,7 @@ def _normalize(vectors: np.ndarray) -> np.ndarray:
 
 
 def _sentence_transformer_incompatibility() -> str:
-    """Return a reason string when optional embedding packages are incompatible."""
+    """Detect optional package states that would make model import noisy."""
 
     try:
         transformers_version = metadata.version("transformers")
@@ -144,7 +155,7 @@ def _sentence_transformer_incompatibility() -> str:
 
 
 def _version_at_least(version: str, major: int, minor: int) -> bool:
-    """Compare the numeric major/minor prefix of a package version string."""
+    """Return whether ``version`` has at least the requested major/minor."""
 
     parts = re.findall(r"\d+", version)[:2]
     if len(parts) < 2:

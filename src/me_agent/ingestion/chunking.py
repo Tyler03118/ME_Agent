@@ -12,13 +12,16 @@ def chunk_documents(
     chunk_size: int = 300,
     overlap: int = 50,
 ) -> list[dict[str, str]]:
-    """Split raw documents into standardized chunk dictionaries.
+    """Split raw manuals into the small text records used by retrievers.
 
-    This is a preprocessing-only helper. It does not embed, score, or retrieve.
-    Each chunk receives a stable ``source:index`` ID so retrieval results,
-    deduplication, evaluation reports, and MLflow artifacts can all refer back
-    to the same text span. The overlap keeps compact ECU specs visible when a
-    table row or bullet lands near a chunk boundary.
+    Output for every chunk:
+    - ``text``: the chunk body that will later be embedded or keyword-scored.
+    - ``source``: the manual filename used for filtering and citations.
+    - ``chunk_id``: a stable ``source:index`` ID used for deduping and reports.
+
+    The loop takes ``chunk_size`` characters, then moves the next start position
+    back by ``overlap`` characters so specs near a boundary appear in both
+    neighboring chunks.
     """
 
     if chunk_size <= 0:
@@ -55,7 +58,12 @@ def chunk_documents(
 
 
 class MarkdownChunker:
-    """Split documents into deterministic overlapping character chunks."""
+    """Convert loaded manuals into ``ManualChunk`` objects.
+
+    This class wraps ``chunk_documents`` and then copies the original document
+    metadata onto each chunk, so retrieval can still see fields such as
+    ``source``, ``document_id``, ``product_family``, and ``model``.
+    """
 
     def __init__(self, chunk_size: int = 900, chunk_overlap: int = 120) -> None:
         """Validate and store chunking parameters."""
@@ -70,7 +78,7 @@ class MarkdownChunker:
         self.chunk_overlap = chunk_overlap
 
     def split(self, documents: list[ManualDocument]) -> list[ManualChunk]:
-        """Split all documents while preserving loader order and metadata."""
+        """Split every document and keep the loader's sorted document order."""
 
         chunks: list[ManualChunk] = []
         for document in documents:
@@ -78,7 +86,13 @@ class MarkdownChunker:
         return chunks
 
     def split_document(self, document: ManualDocument) -> list[ManualChunk]:
-        """Split one document and copy its metadata onto every chunk."""
+        """Split one manual and attach per-chunk metadata.
+
+        For each returned chunk:
+        - ``content`` is the chunk text.
+        - ``metadata`` starts as the manual metadata.
+        - ``chunk_index`` and ``chunk_id`` identify the exact chunk position.
+        """
 
         standardized_chunks = chunk_documents(
             [document],

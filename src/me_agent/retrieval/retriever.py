@@ -19,7 +19,7 @@ SUPPORTED_RETRIEVER_MODES = {"keyword", "vector", "hybrid"}
 
 
 class Retriever(Protocol):
-    """Common retriever interface used by the LangGraph workflow."""
+    """Interface shared by keyword, vector, and hybrid retrievers."""
 
     chunks: list[ManualChunk]
 
@@ -30,15 +30,16 @@ class Retriever(Protocol):
         required_sources: set[str] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
-        """Return relevant chunks for the query."""
+        """Return ranked chunks for ``query`` as ``RetrievalResult`` objects."""
 
 
 class InMemoryKeywordRetriever:
-    """Keyword-overlap retriever for exact identifiers and numeric specs.
+    """Find chunks by exact token overlap.
 
-    ECU questions often depend on tokens such as model IDs, command flags, units,
-    and storage sizes. A simple overlap score keeps those exact matches visible
-    even when vector similarity would blur them.
+    This is useful for ECU manuals because many answers depend on exact strings:
+    - model IDs such as ``ECU-850b``;
+    - units such as ``+105C``, ``512 KB``, or ``2 MB``;
+    - feature terms such as ``OTA``, ``NPU``, or ``CAN``.
     """
 
     def __init__(self, chunks: Iterable[ManualChunk], top_k: int = 4) -> None:
@@ -54,10 +55,14 @@ class InMemoryKeywordRetriever:
         required_sources: set[str] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
-        """Return top chunks by normalized token overlap.
+        """Score chunks by how many query tokens they contain.
 
-        Results are sorted before source coverage is enforced, so each required
-        manual contributes its strongest matching chunk.
+        Steps:
+        - expand the query with domain synonyms;
+        - optionally keep only chunks from ``required_sources``;
+        - score each chunk with ``_keyword_score``;
+        - sort highest score first;
+        - make sure required sources are represented in the final list.
         """
 
         query_tokens = _query_tokens(query)
@@ -74,7 +79,7 @@ class InMemoryKeywordRetriever:
 
 
 class InMemoryVectorRetriever:
-    """Vector retriever backed by a prebuilt VectorStore."""
+    """Find chunks by embedding similarity using a prebuilt ``VectorStore``."""
 
     def __init__(
         self,
@@ -100,7 +105,12 @@ class InMemoryVectorRetriever:
         required_sources: set[str] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
-        """Return top chunks from the prebuilt vector index."""
+        """Search the vector index for semantically similar chunks.
+
+        The query is expanded before vector search so paraphrases like
+        ``thermal tolerance`` also include manual wording like
+        ``operating temperature``.
+        """
 
         if not _tokens(query):
             raise ValueError("query must contain at least one searchable token")
@@ -114,11 +124,13 @@ class InMemoryVectorRetriever:
 
 
 class HybridRetriever:
-    """Hybrid retriever that merges keyword-first results with vector recall.
+    """Run keyword and vector retrieval, then merge their results.
 
-    Keyword results are kept first because exact specifications are the highest
-    precision signal in this domain. Vector results add recall for paraphrases;
-    the merge deduplicates by chunk id without adding an opaque reranker.
+    Merge behavior:
+    - keyword results come first because exact specs should win;
+    - vector results are appended to catch paraphrases;
+    - duplicate chunks are removed by ``chunk_id``;
+    - source coverage is applied after merging.
     """
 
     def __init__(
@@ -145,10 +157,10 @@ class HybridRetriever:
         required_sources: set[str] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
-        """Return merged keyword and vector results without reranking.
+        """Return a keyword-first union of keyword and vector matches.
 
-        Keyword-first merge keeps exact model/spec matches ahead of broader
-        semantic matches, while vector recall fills paraphrase gaps.
+        ``candidate_limit`` may be larger than ``top_k`` so comparison queries
+        have room to include at least one chunk from every required manual.
         """
 
         limit = top_k or self.top_k
@@ -178,10 +190,14 @@ def build_retriever(
     embedding_backend: str = "auto",
     embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
 ) -> Retriever:
-    """Build a retriever for the configured mode.
+    """Create the retriever selected by config.
 
-    The vector retriever builds its index during construction, so runtime queries
-    reuse the same embeddings and avoid rebuilding the corpus for each request.
+    Supported modes:
+    - ``keyword``: exact token overlap only;
+    - ``vector``: embedding search only;
+    - ``hybrid``: keyword-first merge with vector recall.
+
+    Vector indexes are built here once, then reused for every query.
     """
 
     normalized_mode = mode.lower().strip()
@@ -227,7 +243,7 @@ def _candidate_chunks(
     chunks: list[ManualChunk],
     required_sources: set[str] | None,
 ) -> list[ManualChunk]:
-    """Filter chunks by required source filenames when a route requests them."""
+    """Return all chunks, or only chunks whose ``source`` is required."""
 
     if not required_sources:
         return chunks
@@ -239,11 +255,12 @@ def _with_required_source_coverage(
     required_sources: set[str] | None,
     limit: int,
 ) -> list[RetrievalResult]:
-    """Keep at least one top result from each required source when possible.
+    """Add source coverage to an already-scored result list.
 
-    The first pass reserves the best hit from every route-required source. The
-    second pass fills remaining slots by global score while skipping chunks that
-    were already selected for source coverage.
+    Example for a comparison query requiring three manuals:
+    - first pick the best result from manual A, B, and C;
+    - then fill remaining slots with the next highest-scoring chunks;
+    - skip any chunk already selected in the first pass.
     """
 
     if not required_sources:
@@ -269,7 +286,7 @@ def _merge_keyword_then_vector(
     keyword_results: list[RetrievalResult],
     vector_results: list[RetrievalResult],
 ) -> list[RetrievalResult]:
-    """Merge retrieval lists while preserving keyword-first ordering."""
+    """Append vector results after keyword results and remove duplicates."""
 
     merged: list[RetrievalResult] = []
     seen: set[str] = set()
@@ -283,7 +300,7 @@ def _merge_keyword_then_vector(
 
 
 def _dedupe_chunks(chunks: list[ManualChunk]) -> list[ManualChunk]:
-    """Return chunks with duplicate chunk IDs removed in first-seen order."""
+    """Keep the first copy of each chunk ID and drop later duplicates."""
 
     deduped: list[ManualChunk] = []
     seen: set[str] = set()
@@ -297,31 +314,31 @@ def _dedupe_chunks(chunks: list[ManualChunk]) -> list[ManualChunk]:
 
 
 def _chunk_id(chunk: ManualChunk) -> str:
-    """Return the stable identifier used for deduplication."""
+    """Return the best available stable key for one chunk."""
 
     value = chunk.metadata.get("chunk_id") or chunk.metadata.get("source") or id(chunk)
     return str(value)
 
 
 def _tokens(text: str) -> set[str]:
-    """Tokenize text for keyword overlap scoring."""
+    """Convert text into lowercase alphanumeric tokens for overlap scoring."""
 
     return {match.group(0).lower() for match in TOKEN_PATTERN.finditer(text)}
 
 
 def _query_tokens(text: str) -> set[str]:
-    """Tokenize a query and add deterministic domain synonym expansions."""
+    """Tokenize a query after adding domain synonym text."""
 
     return _tokens(_expanded_query_text(text))
 
 
 def _expanded_query_text(text: str) -> str:
-    """Append domain synonyms that bridge user phrasing to manual wording.
+    """Append manual-style wording when a query uses common paraphrases.
 
-    This deterministic expansion is the lightweight retrieval intelligence: a
-    phrase such as "thermal tolerance" can match manual wording such as
-    "operating temperature" without requiring an LLM router in the retrieval
-    loop.
+    Example:
+    - user asks: ``best thermal tolerance``;
+    - expansion adds wording such as ``operating temperature``;
+    - keyword and vector search can now match the table row in the manuals.
     """
 
     normalized = text.lower()
@@ -336,7 +353,7 @@ def _expanded_query_text(text: str) -> str:
 
 
 def _keyword_score(query_tokens: set[str], chunk_tokens: set[str]) -> float:
-    """Score a chunk by the share of query tokens it contains."""
+    """Return ``matched query tokens / total query tokens`` rounded to 4 dp."""
 
     if not query_tokens or not chunk_tokens:
         return 0.0

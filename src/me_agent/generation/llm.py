@@ -24,7 +24,13 @@ SENTENCE_PATTERN = re.compile(r"(?<=[.!?])\s+|\n+")
 
 @dataclass(frozen=True)
 class GenerationResult:
-    """Answer generation output."""
+    """Return value from the answer generator.
+
+    Fields:
+    - ``answer``: final text shown to the user;
+    - ``used_llm``: ``True`` only when the live provider returned text;
+    - ``fallback_reason``: why deterministic extraction was used, if any.
+    """
 
     answer: str
     used_llm: bool
@@ -32,15 +38,16 @@ class GenerationResult:
 
 
 class DeepSeekAnswerGenerator:
-    """Generate grounded answers with DeepSeek, falling back to extraction.
+    """Answer ECU questions from retrieved chunks.
 
-    The generator is deliberately stateless. It builds a client only when the
-    configured API key is available, which keeps offline tests and no-key demos on
-    the deterministic extractive path.
+    Runtime behavior:
+    - with a configured API key, call DeepSeek through ``ChatOpenAI``;
+    - without a key, use deterministic extraction from retrieved text;
+    - if the provider errors, fall back instead of crashing the graph.
     """
 
     def __init__(self, config: AgentConfig) -> None:
-        """Store runtime configuration used for client construction."""
+        """Store model name, endpoint, timeout, retry, and API-key settings."""
 
         self.config = config
 
@@ -51,14 +58,14 @@ class DeepSeekAnswerGenerator:
         route: RouteDecision,
         retrieved_context: Sequence[RetrievalResult],
     ) -> GenerationResult:
-        """Generate an answer from retrieved context without hardcoded questions.
+        """Generate one answer from one question and its retrieved chunks.
 
-        The live model receives only retrieved evidence, which keeps answers
-        grounded even when a prompt asks it to ignore sources or invent ECU
-        specifications. If the provider is unavailable, the deterministic
-        extractive fallback keeps no-key demos and tests reproducible. The
-        fallback reason records the provider error type for evaluation and
-        MLflow diagnostics.
+        Flow:
+        - if retrieval returned no chunks, report insufficient context;
+        - build a prompt from the question, route, and retrieved chunks;
+        - call the live model when a client can be built;
+        - normalize live model whitespace before returning;
+        - on missing key/import error/provider error, return extractive fallback.
         """
 
         if not retrieved_context:
@@ -93,10 +100,11 @@ class DeepSeekAnswerGenerator:
         )
 
     def _build_client(self):
-        """Create a LangChain ChatOpenAI client when DeepSeek config is present.
+        """Build the DeepSeek-compatible LangChain client when possible.
 
-        The import is lazy so the package remains usable in offline/no-key
-        environments that only exercise deterministic fallback behavior.
+        Return ``None`` when:
+        - the configured API-key environment variable is missing;
+        - ``langchain_openai`` is not installed in the current environment.
         """
 
         api_key = os.getenv(self.config.api_key_env_var)
@@ -123,11 +131,12 @@ def synthesize_deterministic(
     question: str,
     retrieved_context: Sequence[RetrievalResult],
 ) -> str:
-    """Create a short extractive answer from retrieved context only.
+    """Create an answer without calling an LLM.
 
-    This fallback is corpus-agnostic: it ranks sentences by overlap with the
-    question plus the retriever score, then appends source filenames. It is meant
-    to preserve grounded behavior when the live model is unavailable.
+    Steps:
+    - rank sentence/table-row facts from retrieved chunks;
+    - join the top three facts into a compact answer;
+    - append source filenames so the fallback still cites evidence.
     """
 
     sentences = _ranked_sentences(question, retrieved_context)
@@ -141,11 +150,14 @@ def _ranked_sentences(
     question: str,
     retrieved_context: Sequence[RetrievalResult],
 ) -> list[tuple[str, float]]:
-    """Rank candidate context sentences for deterministic fallback synthesis.
+    """Score each fact-like line from retrieved chunks.
 
-    The score combines lexical overlap, small domain boosts for known ECU
-    phrasing gaps, and the upstream retrieval score. It does not use
-    question-id-specific answer rules.
+    For each candidate sentence/table row:
+    - normalize whitespace and skip duplicates;
+    - compute token overlap with the question;
+    - add small boosts for ECU terms like temperature, OTA, or NPU;
+    - add a small amount of the retrieval score;
+    - sort highest score first.
     """
 
     query_tokens = set(_content_tokens(question))
@@ -167,10 +179,13 @@ def _ranked_sentences(
 
 
 def _split_sentences(text: str) -> list[str]:
-    """Split Markdown text into sentence-like facts and table-row facts.
+    """Split chunk text into reusable facts.
 
-    Markdown table rows are treated as complete facts so labels, values, and
-    units stay together during deterministic fallback ranking.
+    Rules:
+    - blank lines are ignored;
+    - Markdown table rows stay as one fact so labels and values stay together;
+    - non-table lines are split on sentence punctuation or newlines;
+    - leading bullets and dashes are stripped from the final facts.
     """
 
     sentences: list[str] = []
@@ -189,10 +204,12 @@ def _split_sentences(text: str) -> list[str]:
 
 
 def _content_tokens(text: str) -> list[str]:
-    """Return question/content tokens useful for fallback ranking.
+    """Return tokens that matter for fallback ranking.
 
-    Deterministic synonym expansion mirrors retrieval so fallback ranking can
-    connect user phrasing with the wording used in the manuals.
+    Processing:
+    - tokenize text with the shared embedding tokenizer;
+    - remove generic stopwords, ``ecu``, and standalone numbers;
+    - add domain expansion terms when trigger words are present.
     """
 
     tokens = [
@@ -208,7 +225,13 @@ def _content_tokens(text: str) -> list[str]:
 
 
 def _domain_fact_bonus(question: str, sentence: str) -> float:
-    """Boost manual rows that express a domain synonym targeted by the query."""
+    """Add small ranking boosts for common ECU wording mismatches.
+
+    Examples:
+    - ``thermal tolerance`` in the question should find ``operating temperature``;
+    - ``remote update`` should find ``OTA`` or ``firmware``;
+    - ``edge inference`` should find ``NPU`` or ``TOPS``.
+    """
 
     query = question.lower()
     text = sentence.lower()
@@ -226,7 +249,7 @@ def _domain_fact_bonus(question: str, sentence: str) -> float:
 
 
 def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
-    """Return whether any phrase appears in lower-cased text."""
+    """Return ``True`` when any target phrase appears in ``text``."""
 
     return any(needle in text for needle in needles)
 
@@ -235,7 +258,7 @@ def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
 
 
 def _normalize_model_text(answer: str) -> str:
-    """Normalize model text whitespace without changing answer content."""
+    """Collapse unusual whitespace from a provider response into normal spaces."""
 
     return " ".join(answer.replace(" ", " ").replace(" ", " ").split())
 
@@ -245,11 +268,13 @@ def _build_prompt(
     route: RouteDecision,
     retrieved_context: Sequence[RetrievalResult],
 ) -> str:
-    """Build a compact prompt that separates evidence lines from full context.
+    """Build the prompt sent to DeepSeek.
 
-    Ranked evidence lines appear before the full context to steer the live LLM
-    toward compact, high-signal facts while preserving complete retrieved chunks
-    for grounding.
+    Prompt sections:
+    - ``QUESTION``: original user question;
+    - ``EVIDENCE_LINES``: top ranked rows/sentences for easy model focus;
+    - ``CONTEXT``: full retrieved chunks with source filenames;
+    - ``ANSWER``: marker where the model starts generating.
     """
 
     context = "\n\n".join(
@@ -283,10 +308,12 @@ def _evidence_lines(
     *,
     limit: int = 32,
 ) -> list[str]:
-    """Surface the most relevant rows/sentences before the full context.
+    """Pick the highest-signal facts to place at the top of the prompt.
 
-    Tables and bolded spec labels are boosted because they tend to be higher
-    confidence manual evidence than surrounding prose.
+    Scoring for each fact:
+    - token overlap with the user question;
+    - bonus for Markdown tables or bold spec labels;
+    - small boost from the original retrieval score.
     """
 
     query_tokens = set(_content_tokens(question))
@@ -312,7 +339,7 @@ def _evidence_lines(
 
 
 def _sources(retrieved_context: Sequence[RetrievalResult]) -> tuple[str, ...]:
-    """Return unique source filenames from retrieved context."""
+    """Return source filenames once, preserving first-seen order."""
 
     seen: list[str] = []
     for result in retrieved_context:
@@ -323,7 +350,7 @@ def _sources(retrieved_context: Sequence[RetrievalResult]) -> tuple[str, ...]:
 
 
 def _with_sources(answer: str, sources: tuple[str, ...]) -> str:
-    """Append source filenames to deterministic fallback answers."""
+    """Append source filenames to fallback answers when sources exist."""
 
     if not sources:
         return answer

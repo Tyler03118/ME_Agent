@@ -25,12 +25,14 @@ def verify_answer(  # pylint: disable=too-many-return-statements
     answer: str,
     retrieved_context: list[RetrievalResult],
 ) -> VerificationResult:
-    """Heuristically judge whether an answer is supported by retrieved chunks.
+    """Check whether the generated answer is backed by retrieved text.
 
-    Numeric specs are treated as high-risk: a measurement introduced by the
-    answer but absent from retrieved context is marked contradicted even if the
-    surrounding words overlap. Remaining support is estimated with lightweight
-    token overlap, not a full factuality judge.
+    Decision flow:
+    - no retrieved chunks -> unsupported;
+    - answer says context is insufficient -> unsupported;
+    - answer introduces unseen measurements -> contradicted;
+    - otherwise compare answer tokens with context tokens;
+    - high overlap -> supported, medium overlap -> partially supported.
     """
 
     if not retrieved_context:
@@ -77,17 +79,19 @@ def verify_answer(  # pylint: disable=too-many-return-statements
 
 
 def _content_tokens(text: str) -> set[str]:
-    """Tokenize answer or context text after removing citation brackets."""
+    """Remove citations, tokenize text, and drop verifier stopwords."""
 
     cleaned = CITATION_PATTERN.sub(" ", text)
     return {token for token in _tokens(cleaned) if token not in STOPWORDS}
 
 
 def _measurements(text: str) -> set[str]:
-    """Extract normalized engineering measurements that must be evidence-backed.
+    """Extract numeric specs such as temperature, memory, speed, and current.
 
-    Whitespace and degree symbols are normalized so forms such as ``+105 °C``
-    and ``+105C`` compare as the same measurement.
+    Normalization examples:
+    - ``+105 °C`` and ``+105C`` both become ``+105c``;
+    - citation brackets are removed before matching;
+    - spaces inside a measurement are removed before comparison.
     """
 
     cleaned = CITATION_PATTERN.sub(" ", text).lower().replace("−", "-").replace("º", "°")

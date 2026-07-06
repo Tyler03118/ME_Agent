@@ -9,11 +9,13 @@ from me_agent.core.schemas import ManualChunk, RetrievalResult
 
 
 class VectorStore:
-    """Build a vector index once and search it for each query.
+    """Keep chunk embeddings and search them by vector similarity.
 
-    FAISS is used when available for fast inner-product search. The numpy path is
-    kept as a first-class fallback and is also used when source filtering is
-    requested, because FAISS does not know about per-chunk metadata.
+    Stored state:
+    - ``chunks`` keeps the original text and metadata for each vector row;
+    - ``vectors`` is the normalized embedding matrix;
+    - ``index`` is a FAISS index when FAISS is installed, otherwise ``None``;
+    - ``backend`` records whether searches use FAISS or numpy fallback.
     """
 
     def __init__(
@@ -37,11 +39,10 @@ class VectorStore:
         chunks: list[ManualChunk],
         embedding_model: EmbeddingModel | None = None,
     ) -> "VectorStore":
-        """Build an in-memory index from chunks during retriever initialization.
+        """Embed every chunk once and optionally build a FAISS index.
 
-        Corpus embeddings are computed once here. Query-time work is then
-        limited to encoding the user query and scoring against this fixed matrix
-        or FAISS index.
+        This happens during retriever construction, not per user query. Later
+        searches only encode the question and compare it with this stored matrix.
         """
 
         resolved_model = embedding_model or EmbeddingModel()
@@ -57,11 +58,14 @@ class VectorStore:
         top_k: int,
         required_sources: set[str] | None = None,
     ) -> list[RetrievalResult]:
-        """Search the existing vector index and return scored chunks.
+        """Return the top vector matches for a query.
 
-        Embeddings are L2-normalized, so inner product is equivalent to cosine
-        similarity. FAISS handles the unfiltered fast path; metadata-filtered
-        searches use numpy over the allowed candidate rows.
+        Search flow:
+        - encode the query once;
+        - build the allowed row list from ``required_sources``;
+        - use FAISS when searching the full corpus;
+        - use numpy matrix multiplication when source filtering is needed;
+        - return chunks with non-negative rounded similarity scores.
         """
 
         if not self.chunks or top_k <= 0:
@@ -98,7 +102,7 @@ class VectorStore:
         ]
 
     def _candidate_indices(self, required_sources: set[str] | None) -> list[int]:
-        """Return vector row indices allowed by source constraints."""
+        """Return vector row numbers that are allowed for this query."""
 
         if not required_sources:
             return list(range(len(self.chunks)))
@@ -110,7 +114,7 @@ class VectorStore:
 
 
 def _build_faiss_index(vectors: np.ndarray):
-    """Build a FAISS inner-product index when FAISS and vectors are available."""
+    """Create a FAISS inner-product index, or ``None`` when unavailable."""
 
     try:
         import faiss  # pylint: disable=import-outside-toplevel
