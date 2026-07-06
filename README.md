@@ -171,14 +171,14 @@ Representative live results from the latest recorded DeepSeek artifacts:
 | Mode | Accuracy | used_llm_rate | Avg latency | Max latency | Mean similarity | Mean token coverage |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Live DeepSeek (`deepseek-v4-flash`) | 100% | 100% | 3.2101s | 6.9711s | 0.7347 | 0.7233 |
-| Live DeepSeek stress set | 100% | 79% | 2.5009s | 5.7232s | 0.6907 | 0.8509 |
+| Live DeepSeek stress set | 93% | 79% | 2.5009s | 5.7232s | 0.6907 | 0.8509 |
 
 Offline no-key evaluation is a smoke/degradation check for the generic
 extractive fallback path, not the main challenge scoring path. Read its current
 result from `reports/eval_results_offline.json` after running the validation script. The
 stress run includes two intentional out-of-scope cases and one verifier-triggered
-grounded fallback for prompt-injection defense while still passing
-fact/source/route checks.
+grounded fallback for prompt-injection defense, with detailed fact/source/route
+diagnostics in the report.
 
 ## Tier Coverage
 

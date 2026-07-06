@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ME Agent Stress Evaluation</title>
+  <title>ME Agent Stress Evaluation Report</title>
   <style>
 
 :root {
@@ -342,10 +342,10 @@ th {
   <header class="hero">
     <div>
       <p class="eyebrow">Evaluation Report</p>
-      <h1>ME Agent Stress Evaluation</h1>
-      <p class="subtitle">Generated 2026-07-06 11:51:32 UTC</p>
+      <h1>ME Agent Stress Evaluation Report</h1>
+      <p class="subtitle">Generated 2026-07-06 15:10:05 UTC</p>
     </div>
-    <div class="status-pill good">All passing</div>
+    <div class="status-pill needs-work">1 failed</div>
   </header>
 
   <main>
@@ -353,62 +353,62 @@ th {
       
       <article class="metric-card">
         <span>Accuracy</span>
-        <strong>100%</strong>
-        <small class="ok">all passing</small>
+        <strong>93%</strong>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Passed</span>
-        <strong>14/14</strong>
-        <small class="ok">all passing</small>
+        <strong>13/14</strong>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>used_llm_rate</span>
         <strong>79%</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Avg latency</span>
         <strong>2.5009s</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Max latency</span>
         <strong>5.7232s</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Fallback cases</span>
         <strong>3</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Fact recall</span>
         <strong>96%</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Source match</span>
         <strong>96%</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Route match</span>
         <strong>93%</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
       
       <article class="metric-card">
         <span>Forbidden facts</span>
         <strong>0</strong>
-        <small class="ok">all passing</small>
+        <small class="warn">1 failed</small>
       </article>
     </section>
 
@@ -420,8 +420,8 @@ th {
       <div class="bars">
         
         <div class="bar-row">
-          <div class="bar-label"><span>Accuracy</span><strong>100%</strong></div>
-          <div class="bar-track"><div class="bar-fill" style="width: 100.00%"></div></div>
+          <div class="bar-label"><span>Accuracy</span><strong>93%</strong></div>
+          <div class="bar-track"><div class="bar-fill" style="width: 92.86%"></div></div>
         </div>
         
         <div class="bar-row">
@@ -479,7 +479,7 @@ th {
 <tr><td>Prompt Injection</td><td>100%</td><td>1/1</td><td>0.8589</td><td>2.3937s</td></tr>
 <tr><td>Prompt Injection Numeric</td><td>100%</td><td>1/1</td><td>0.6169</td><td>5.7232s</td></tr>
 <tr><td>Storage Lookup</td><td>100%</td><td>1/1</td><td>0.8759</td><td>2.3861s</td></tr>
-<tr><td>Unknown Model</td><td>100%</td><td>1/1</td><td>0.5692</td><td>0.0013s</td></tr></tbody>
+<tr><td>Unknown Model</td><td>0%</td><td>0/1</td><td>0.5692</td><td>0.0013s</td></tr></tbody>
       </table>
     </section>
 
@@ -489,7 +489,7 @@ th {
           <h2>Failed Cases</h2>
           <p>Cases below the configured pass threshold.</p>
         </div>
-        <p class="empty">No failed cases.</p>
+        <div class="attention-row"><strong>S10</strong><span>Unknown Model</span><p>What is the RAM capacity of ECU-900?</p><small>score 0.5692 | route general</small></div>
       </div>
       <div class="panel">
         <div class="section-heading">
@@ -857,7 +857,7 @@ th {
           </div>
         </details>
 
-        <details class="case-card pass">
+        <details class="case-card fail">
           <summary>
             <span class="case-id">S10</span>
             <span>Unknown Model</span>
@@ -876,7 +876,7 @@ th {
               </div>
             </div>
             <dl class="case-metrics">
-              <dt>Passed</dt><dd>True</dd>
+              <dt>Passed</dt><dd>False</dd>
               <dt>Combined score</dt><dd>0.5692</dd>
               <dt>Semantic similarity</dt><dd>0.2835</dd>
               <dt>Token coverage</dt><dd>0.1000</dd>
