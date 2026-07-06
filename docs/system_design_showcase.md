@@ -59,6 +59,70 @@ graph TD;
 | Evaluation | `evaluation/` | Score answers and write JSON/HTML reports. | Turns quality into reviewable artifacts. |
 | Tracking | `tracking/` | MLflow pyfunc packaging and metadata. | Reproduces code + config + corpus + eval context. |
 
+
+## Ingestion
+
+Ingestion creates stable, source-aware evidence units before retrieval. The
+loader extracts source, document ID, product family, and model metadata; the
+chunker creates overlapping chunks that preserve that metadata.
+
+```mermaid
+flowchart TD
+    A["Markdown manuals"] --> B["MarkdownManualLoader"]
+    B --> C["ManualDocument<br/>content + metadata"]
+    C --> D["MarkdownChunker"]
+    D --> E["ManualChunk<br/>content + source metadata"]
+    E --> F["Retrievers build indexes"]
+```
+
+
+## Routing
+
+The router is the first control-flow decision point. It does not answer the
+question; it decides whether the query is inside the ECU manual scope, which
+route category applies, and which manuals retrieval should prioritize.
+
+| Signal | Routing effect |
+| --- | --- |
+| `ECU-750` / `ECU-700` | Prioritize `ECU-700_Series_Manual.md`. |
+| `ECU-850` / `ECU-800` | Prioritize `ECU-800_Series_Base.md`. |
+| `ECU-850b` | Include `ECU-800_Series_Plus.md`; base ECU-800 context may also apply. |
+| OTA / firmware update | Route to `feature_availability` and check all manuals. |
+| Compare / best / strongest / harshest / which model | Route to `comparison` and expand to cross-model evidence. |
+| NPU / AI / edge inference / accelerator | Route to `ecu_850b_lookup`, because those details live in the plus addendum. |
+| No ECU manual signal | Return an out-of-scope route instead of using general model knowledge. |
+
+```mermaid
+flowchart TD
+    A["User query"] --> B["Normalize text"]
+    B --> C{"Inside ECU manual scope?"}
+    C -- "No" --> D["general route<br/>no sources<br/>out-of-scope response"]
+    C -- "Yes" --> E["Infer required sources"]
+
+    E --> F{"Specific intent?"}
+    F -- "Driver command / enable NPU" --> G["configuration<br/>ECU-800 Plus"]
+    F -- "OTA / firmware update" --> H["feature_availability<br/>all manuals"]
+    F -- "Compare / best / strongest" --> I["comparison<br/>relevant manuals or all manuals"]
+    F -- "AI / NPU / accelerator" --> J["ecu_850b_lookup<br/>ECU-800 Plus"]
+    F -- "Model-only lookup" --> K["ecu_700_lookup / ecu_800_lookup / ecu_850b_lookup"]
+
+    G --> L["RouteDecision(category, sources, rationale)"]
+    H --> L
+    I --> L
+    J --> L
+    K --> L
+    L --> M["Retrieval prioritizes routed manuals"]
+```
+
+Routing is deterministic rather than LLM-based because the domain is small and
+the routing signals are explicit: model names, feature names, technical specs,
+and comparison language. This keeps routing low-latency, low-cost,
+reproducible, and easy to unit test.
+
+It also protects the retrieval policy. The LLM is used for grounded synthesis,
+but it does not decide which manuals are valid sources. Prompt text such as
+"ignore the manuals" cannot change the source policy.
+
 ## Retrieval Design
 
 | Mode | How it works | Best for |
@@ -67,12 +131,72 @@ graph TD;
 | Vector | Embedding similarity with FAISS/numpy. | Paraphrased questions. |
 | Hybrid | Keyword first, vector recall second. | Current default for balanced precision and recall. |
 
-## Why Deterministic Routing
+## Generation
 
-- Small domain: ECU-700/800 manual signals are explicit.
-- Lower cost and latency than LLM routing.
-- Easier to unit test.
-- Safer control flow: prompt text cannot change the source policy.
+`generation/llm.py` turns retrieved evidence into the final answer. It does not
+decide routing or retrieval scope; it only synthesizes from the chunks already
+selected by the workflow.
+
+```mermaid
+flowchart TD
+    A["Question + route + retrieved chunks"] --> B{"Any retrieved context?"}
+    B -- "No" --> C["Insufficient-context response<br/>fallback_reason=no_context"]
+    B -- "Yes" --> D["Build grounded prompt"]
+
+    D --> E["Evidence lines<br/>highest-signal facts first"]
+    D --> F["Full context<br/>source-labeled chunks"]
+    E --> G{"Live LLM available?"}
+    F --> G
+
+    G -- "Yes" --> H["DeepSeek synthesis<br/>answer only from context"]
+    G -- "No / provider error" --> I["Deterministic fallback<br/>rank facts from retrieved chunks"]
+
+    H --> J["GenerationResult<br/>answer, used_llm, fallback_reason"]
+    I --> J
+```
+
+The prompt puts curated `EVIDENCE_LINES` before full `CONTEXT` so the model sees
+exact specification rows and high-signal facts first. Comparison and
+feature-availability routes get comparison-oriented instructions; lookup routes
+prefer exact values from evidence lines and tables.
+
+If the live model is unavailable, deterministic fallback ranks facts by question
+overlap, domain-specific matches such as thermal tolerance to operating
+temperature, and retrieval score. This keeps the assistant usable without the
+provider while preserving source-grounded answers.
+
+## Verification
+
+`generation/verifier.py` checks whether generated answers are grounded in the
+retrieved evidence before confidence and final response handling. It focuses on
+high-risk ECU specifications such as temperature, memory, frequency, current,
+TOPS, and Mbps.
+
+```mermaid
+flowchart TD
+    A["Generated answer"] --> B["Extract answer measurements"]
+    C["Retrieved context"] --> D["Extract evidence measurements"]
+
+    B --> E{"Answer measurements supported?"}
+    D --> E
+
+    E -- "No" --> F["contradicted"]
+    E -- "Yes" --> G["Token overlap support check"]
+
+    G --> H{"Support level?"}
+    H -- "High" --> I["supported"]
+    H -- "Partial" --> J["partially_supported"]
+    H -- "Low" --> K["unsupported"]
+
+    F --> L["Confidence calculation"]
+    I --> L
+    J --> L
+    K --> L
+```
+
+The verifier is intentionally narrow. It is not a universal fact checker; it is
+a practical grounding layer for the engineering facts most likely to cause harm
+if hallucinated.
 
 ## Tier Coverage
 
