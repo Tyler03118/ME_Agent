@@ -51,7 +51,15 @@ class DeepSeekAnswerGenerator:
         route: RouteDecision,
         retrieved_context: Sequence[RetrievalResult],
     ) -> GenerationResult:
-        """Generate an answer from retrieved context without hardcoded question paths."""
+        """Generate an answer from retrieved context without hardcoded questions.
+
+        The live model receives only retrieved evidence, which keeps answers
+        grounded even when a prompt asks it to ignore sources or invent ECU
+        specifications. If the provider is unavailable, the deterministic
+        extractive fallback keeps no-key demos and tests reproducible. The
+        fallback reason records the provider error type for evaluation and
+        MLflow diagnostics.
+        """
 
         if not retrieved_context:
             return GenerationResult(
@@ -67,17 +75,11 @@ class DeepSeekAnswerGenerator:
         client = self._build_client()
         if client is not None:
             try:
-                # The live model receives only retrieved evidence. This keeps
-                # answers grounded even when an attacker asks it to ignore
-                # sources or invent ECU specifications.
                 response = client.invoke(prompt)
                 content = _normalize_model_text(getattr(response, "content", str(response)))
                 if content:
                     return GenerationResult(content, used_llm=True)
             except Exception as exc:  # pylint: disable=broad-exception-caught
-                # Provider failures should not crash the graph. The response
-                # records the exception type so evaluation and MLflow artifacts
-                # can distinguish missing-key, timeout, and other fallback paths.
                 return GenerationResult(
                     synthesize_deterministic(question, retrieved_context),
                     used_llm=False,
@@ -91,14 +93,16 @@ class DeepSeekAnswerGenerator:
         )
 
     def _build_client(self):
-        """Create a LangChain ChatOpenAI client when DeepSeek config is present."""
+        """Create a LangChain ChatOpenAI client when DeepSeek config is present.
+
+        The import is lazy so the package remains usable in offline/no-key
+        environments that only exercise deterministic fallback behavior.
+        """
 
         api_key = os.getenv(self.config.api_key_env_var)
         if not api_key:
             return None
         try:
-            # Import lazily so the package remains usable in offline/no-key
-            # environments that only exercise the deterministic fallback path.
             from langchain_openai import ChatOpenAI  # pylint: disable=import-outside-toplevel
         except ImportError:
             return None
@@ -137,7 +141,12 @@ def _ranked_sentences(
     question: str,
     retrieved_context: Sequence[RetrievalResult],
 ) -> list[tuple[str, float]]:
-    """Rank candidate context sentences for deterministic fallback synthesis."""
+    """Rank candidate context sentences for deterministic fallback synthesis.
+
+    The score combines lexical overlap, small domain boosts for known ECU
+    phrasing gaps, and the upstream retrieval score. It does not use
+    question-id-specific answer rules.
+    """
 
     query_tokens = set(_content_tokens(question))
     ranked: list[tuple[str, float]] = []
@@ -150,9 +159,6 @@ def _ranked_sentences(
             seen.add(normalized)
             sentence_tokens = set(_content_tokens(normalized))
             overlap = len(query_tokens & sentence_tokens) / max(len(query_tokens), 1)
-            # Combine three grounded signals: lexical overlap with the question,
-            # small domain boosts for known ECU phrasing gaps, and the upstream
-            # retrieval score. No question-id-specific answer rules are used.
             score = overlap + _domain_fact_bonus(question, normalized) + 0.10 * result.score
             if score > 0:
                 ranked.append((normalized, score))
@@ -161,7 +167,11 @@ def _ranked_sentences(
 
 
 def _split_sentences(text: str) -> list[str]:
-    """Split Markdown text into sentence-like facts and table-row facts."""
+    """Split Markdown text into sentence-like facts and table-row facts.
+
+    Markdown table rows are treated as complete facts so labels, values, and
+    units stay together during deterministic fallback ranking.
+    """
 
     sentences: list[str] = []
     for line in text.splitlines():
@@ -169,9 +179,6 @@ def _split_sentences(text: str) -> list[str]:
         if not stripped:
             continue
         if "|" in stripped:
-            # Markdown table rows usually contain complete specs. Treating a row
-            # as one fact prevents the fallback from separating labels, values,
-            # and units into less useful fragments.
             table_text = " ".join(part.strip() for part in stripped.split("|") if part.strip())
             if set(table_text.replace(" ", "")) <= {"-", ":"}:
                 continue
@@ -182,7 +189,11 @@ def _split_sentences(text: str) -> list[str]:
 
 
 def _content_tokens(text: str) -> list[str]:
-    """Return question/content tokens useful for fallback ranking."""
+    """Return question/content tokens useful for fallback ranking.
+
+    Deterministic synonym expansion mirrors retrieval so fallback ranking can
+    connect user phrasing with the wording used in the manuals.
+    """
 
     tokens = [
         token
@@ -191,8 +202,6 @@ def _content_tokens(text: str) -> list[str]:
     ]
     token_set = set(tokens)
     for triggers, expansion in GENERATION_QUERY_EXPANSION_GROUPS:
-        # Use the same deterministic synonym idea as retrieval so fallback
-        # ranking understands user phrasing that differs from manual wording.
         if token_set & set(triggers):
             tokens.extend(tokenize(expansion))
     return tokens
@@ -236,15 +245,17 @@ def _build_prompt(
     route: RouteDecision,
     retrieved_context: Sequence[RetrievalResult],
 ) -> str:
-    """Build a compact prompt that separates evidence lines from full context."""
+    """Build a compact prompt that separates evidence lines from full context.
+
+    Ranked evidence lines appear before the full context to steer the live LLM
+    toward compact, high-signal facts while preserving complete retrieved chunks
+    for grounding.
+    """
 
     context = "\n\n".join(
         f"SOURCE: {result.chunk.metadata.get('source')}\n{result.chunk.content}"
         for result in retrieved_context
     )
-    # Evidence lines are ranked snippets placed before the full context. They
-    # steer the LLM toward compact, high-signal facts while still preserving the
-    # complete retrieved chunks for grounding.
     evidence = "\n".join(_evidence_lines(question, retrieved_context))
     route_instruction = (
         "For comparison or feature-availability questions, compare every relevant "
@@ -272,7 +283,11 @@ def _evidence_lines(
     *,
     limit: int = 32,
 ) -> list[str]:
-    """Surface the most relevant rows/sentences before the full retrieved context."""
+    """Surface the most relevant rows/sentences before the full context.
+
+    Tables and bolded spec labels are boosted because they tend to be higher
+    confidence manual evidence than surrounding prose.
+    """
 
     query_tokens = set(_content_tokens(question))
     scored: list[tuple[float, str]] = []
@@ -286,9 +301,6 @@ def _evidence_lines(
             seen.add(normalized)
             tokens = set(_content_tokens(normalized))
             overlap = len(query_tokens & tokens) / max(len(query_tokens), 1)
-            # Tables and bolded spec labels tend to be higher-confidence manual
-            # evidence than surrounding prose, so they get a small prompt-order
-            # boost without hardcoding any specific question.
             table_bonus = 0.35 if "|" in sentence or "**" in sentence else 0.0
             evidence_line = f"- [{source}] {normalized}"
             scored.append((overlap + table_bonus + 0.05 * result.score, evidence_line))

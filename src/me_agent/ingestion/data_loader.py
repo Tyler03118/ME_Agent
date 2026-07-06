@@ -22,7 +22,7 @@ class MarkdownManualLoader:
         self.pattern = pattern
 
     def load(self) -> list[ManualDocument]:
-        """Read Markdown files and attach source metadata."""
+        """Read Markdown files in deterministic order and attach metadata."""
 
         if not self.manual_dir.exists():
             raise FileNotFoundError(f"Manual directory does not exist: {self.manual_dir}")
@@ -32,9 +32,6 @@ class MarkdownManualLoader:
         documents: list[ManualDocument] = []
         for path in sorted(self.manual_dir.glob(self.pattern)):
             if path.is_file():
-                # Sorting the glob results makes ingestion deterministic across
-                # filesystems, which keeps retrieval ordering and eval diffs
-                # stable when the same corpus is loaded on another machine.
                 content = path.read_text(encoding="utf-8")
                 documents.append(
                     ManualDocument(content=content, metadata=self._metadata(path, content))
@@ -43,13 +40,15 @@ class MarkdownManualLoader:
 
     @staticmethod
     def _metadata(path: Path, content: str) -> dict[str, str | None]:
-        """Build source metadata used later for routing and citation display."""
+        """Build citation, routing, and reporting metadata for one manual.
+
+        The filename remains the primary citation key. Product family and model
+        are best-effort labels used for filtering and diagnostics.
+        """
 
         text = f"{path.name}\n{content}"
         document_id_match = DOCUMENT_ID_PATTERN.search(content)
         product_family = _extract_product_family(text)
-        # The filename remains the primary citation key. Product family and
-        # model are best-effort labels for routing, filtering, and reporting.
         return {
             "source": path.name,
             "document_id": document_id_match.group(1) if document_id_match else None,
@@ -68,13 +67,15 @@ def _extract_product_family(text: str) -> str | None:
 
 
 def _extract_model(text: str, product_family: str | None) -> str | None:
-    """Return the most specific ECU model identifier found in the text."""
+    """Return the most specific ECU model identifier found in the text.
+
+    Specific models such as ECU-850b are preferred over family names such as
+    ECU-800 because model-level routing is more selective.
+    """
 
     matches = ECU_MODEL_PATTERN.findall(text)
     for model in matches:
         normalized = model.upper().replace("B", "b")
-        # Prefer specific models such as ECU-850b over family names such as
-        # ECU-800, because model-level routing is more selective.
         if normalized != product_family:
             return normalized
     return matches[0] if matches else None

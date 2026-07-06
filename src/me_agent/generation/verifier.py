@@ -25,7 +25,13 @@ def verify_answer(  # pylint: disable=too-many-return-statements
     answer: str,
     retrieved_context: list[RetrievalResult],
 ) -> VerificationResult:
-    """Heuristically judge whether an answer is supported by retrieved chunks."""
+    """Heuristically judge whether an answer is supported by retrieved chunks.
+
+    Numeric specs are treated as high-risk: a measurement introduced by the
+    answer but absent from retrieved context is marked contradicted even if the
+    surrounding words overlap. Remaining support is estimated with lightweight
+    token overlap, not a full factuality judge.
+    """
 
     if not retrieved_context:
         return VerificationResult(
@@ -49,9 +55,6 @@ def verify_answer(  # pylint: disable=too-many-return-statements
     if not answer_tokens:
         return VerificationResult("unsupported", 0.0, "The answer is empty.")
 
-    # Numeric specs are high-risk in this domain. If the answer introduces a
-    # measurement that never appeared in retrieved context, treat it as a
-    # contradiction even if the surrounding words overlap with the manuals.
     missing_measurements = _measurements(answer) - context_measurements
     if missing_measurements:
         missing = ", ".join(sorted(missing_measurements))
@@ -61,9 +64,6 @@ def verify_answer(  # pylint: disable=too-many-return-statements
             f"Answer includes numeric fact(s) not present in retrieved context: {missing}.",
         )
 
-    # Token overlap is a lightweight support heuristic, not a full factuality
-    # judge. The numeric guard above handles the most common hallucination class
-    # for engineering manuals.
     overlap = len(answer_tokens & context_tokens) / len(answer_tokens)
     if overlap >= 0.6:
         return VerificationResult("supported", 1.0, "Most answer tokens appear in context.")
@@ -84,12 +84,14 @@ def _content_tokens(text: str) -> set[str]:
 
 
 def _measurements(text: str) -> set[str]:
-    """Extract normalized engineering measurements that must be evidence-backed."""
+    """Extract normalized engineering measurements that must be evidence-backed.
+
+    Whitespace and degree symbols are normalized so forms such as ``+105 °C``
+    and ``+105C`` compare as the same measurement.
+    """
 
     cleaned = CITATION_PATTERN.sub(" ", text).lower().replace("−", "-").replace("º", "°")
     measurements: set[str] = set()
     for match in MEASUREMENT_PATTERN.findall(cleaned):
-        # Normalize whitespace and degree symbols so "+105 °C" and "+105C"
-        # compare as the same evidence-backed measurement.
         measurements.add(re.sub(r"\s+", "", match).replace("°", ""))
     return measurements

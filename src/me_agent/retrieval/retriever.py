@@ -54,7 +54,11 @@ class InMemoryKeywordRetriever:
         required_sources: set[str] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
-        """Return top chunks by normalized token overlap."""
+        """Return top chunks by normalized token overlap.
+
+        Results are sorted before source coverage is enforced, so each required
+        manual contributes its strongest matching chunk.
+        """
 
         query_tokens = _query_tokens(query)
         if not query_tokens:
@@ -65,14 +69,8 @@ class InMemoryKeywordRetriever:
             RetrievalResult(chunk=chunk, score=_keyword_score(query_tokens, _tokens(chunk.content)))
             for chunk in candidates
         ]
-        # Sort before enforcing source coverage so each required manual
-        # contributes its strongest matching chunk.
         scored.sort(key=lambda result: result.score, reverse=True)
         return _with_required_source_coverage(scored, required_sources, limit)
-
-
-class FullDocumentRetriever(InMemoryKeywordRetriever):
-    """Backward-compatible alias for the original keyword retriever."""
 
 
 class InMemoryVectorRetriever:
@@ -147,7 +145,11 @@ class HybridRetriever:
         required_sources: set[str] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
-        """Return merged keyword and vector results without reranking."""
+        """Return merged keyword and vector results without reranking.
+
+        Keyword-first merge keeps exact model/spec matches ahead of broader
+        semantic matches, while vector recall fills paraphrase gaps.
+        """
 
         limit = top_k or self.top_k
         candidate_limit = max(limit, len(required_sources or ()))
@@ -161,8 +163,6 @@ class HybridRetriever:
             required_sources=required_sources,
             top_k=candidate_limit,
         )
-        # Keyword-first merge keeps exact model/spec matches ahead of broader
-        # semantic matches, while still allowing vector recall to fill gaps.
         merged = _merge_keyword_then_vector(keyword_results, vector_results)
         return _with_required_source_coverage(merged, required_sources, limit)
 
@@ -239,15 +239,17 @@ def _with_required_source_coverage(
     required_sources: set[str] | None,
     limit: int,
 ) -> list[RetrievalResult]:
-    """Keep at least one top result from each required source when possible."""
+    """Keep at least one top result from each required source when possible.
+
+    The first pass reserves the best hit from every route-required source. The
+    second pass fills remaining slots by global score while skipping chunks that
+    were already selected for source coverage.
+    """
 
     if not required_sources:
         return scored[:limit]
     selected: list[RetrievalResult] = []
     for source in sorted(required_sources):
-        # First pass: reserve the best hit from every source requested by the
-        # route. This prevents multi-manual comparisons from being dominated by
-        # one highly similar manual.
         source_results = [
             result for result in scored if result.chunk.metadata.get("source") == source
         ]
@@ -255,8 +257,6 @@ def _with_required_source_coverage(
             selected.append(source_results[0])
     selected_ids = {_chunk_id(result.chunk) for result in selected}
     for result in scored:
-        # Second pass: fill the remaining slots by global score, skipping chunks
-        # already selected for source coverage.
         if len(selected) >= max(limit, len(required_sources)):
             break
         if _chunk_id(result.chunk) not in selected_ids:
@@ -316,15 +316,18 @@ def _query_tokens(text: str) -> set[str]:
 
 
 def _expanded_query_text(text: str) -> str:
-    """Append domain synonyms that bridge user phrasing to manual wording."""
+    """Append domain synonyms that bridge user phrasing to manual wording.
+
+    This deterministic expansion is the lightweight retrieval intelligence: a
+    phrase such as "thermal tolerance" can match manual wording such as
+    "operating temperature" without requiring an LLM router in the retrieval
+    loop.
+    """
 
     normalized = text.lower()
     tokens = _tokens(normalized)
     expansions: list[str] = []
     for triggers, expansion in RETRIEVAL_QUERY_EXPANSION_GROUPS:
-        # Deterministic expansion is the lightweight "intelligence" here: terms
-        # like "thermal tolerance" can match manual wording such as "operating
-        # temperature" without requiring an LLM router in the retrieval loop.
         if tokens & set(triggers):
             expansions.append(expansion)
     if not expansions:

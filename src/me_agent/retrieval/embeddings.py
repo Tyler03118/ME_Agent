@@ -42,12 +42,14 @@ class EmbeddingModel:
         self.info = self._load_backend()
 
     def encode(self, texts: list[str]) -> np.ndarray:
-        """Encode texts as L2-normalized float32 vectors."""
+        """Encode texts as L2-normalized float32 vectors.
+
+        Both the sentence-transformers backend and hashing fallback return the
+        same normalized shape, so vector search can use cosine-style inner
+        product scoring without caring which backend is active.
+        """
 
         if self._model is not None:
-            # sentence-transformers already supports normalized embeddings, but
-            # _normalize is still applied below to guarantee the same invariant
-            # as the hashing backend.
             vectors = self._model.encode(
                 texts,
                 normalize_embeddings=True,
@@ -57,16 +59,18 @@ class EmbeddingModel:
         return _hashing_encode(texts, self.fallback_dimensions)
 
     def _load_backend(self) -> EmbeddingInfo:
-        """Load sentence-transformers when possible, otherwise use hashing."""
+        """Load sentence-transformers when possible, otherwise use hashing.
+
+        Known optional dependency incompatibilities are detected before import,
+        which avoids noisy transformer/torch warnings and keeps local evaluation
+        on the deterministic fallback path.
+        """
 
         if self.requested_backend in {"hashing", "sparse", "fallback"}:
             return EmbeddingInfo("hashing", "generic-token-hashing", self.fallback_dimensions)
         try:
             incompatibility = _sentence_transformer_incompatibility()
             if incompatibility:
-                # Avoid importing a known-broken optional stack. This prevents
-                # noisy transformer/torch warnings and cleanly falls back to
-                # deterministic hashing for local evaluation.
                 raise RuntimeError(incompatibility)
             from sentence_transformers import SentenceTransformer  # pylint: disable=import-outside-toplevel,import-error
 
@@ -99,14 +103,16 @@ def tokenize(text: str) -> list[str]:
 
 
 def _hashing_encode(texts: list[str], dimensions: int) -> np.ndarray:
-    """Encode text with signed token hashing for deterministic offline vectors."""
+    """Encode text with signed token hashing for deterministic offline vectors.
+
+    The first half of each token digest chooses the vector bucket; a later byte
+    chooses the sign. Signed hashing reduces the directional bias that plain
+    positive counts would introduce after normalization.
+    """
 
     vectors = np.zeros((len(texts), dimensions), dtype=np.float32)
     for row, text in enumerate(texts):
         for token in tokenize(text):
-            # The first half of the digest chooses the vector bucket; the next
-            # byte chooses the sign. Signed hashing reduces the directional bias
-            # that plain positive counts would introduce after normalization.
             digest = hashlib.blake2b(token.encode("utf-8"), digest_size=8).digest()
             index = int.from_bytes(digest[:4], "big") % dimensions
             sign = 1.0 if digest[4] % 2 == 0 else -1.0
@@ -115,27 +121,23 @@ def _hashing_encode(texts: list[str], dimensions: int) -> np.ndarray:
 
 
 def _normalize(vectors: np.ndarray) -> np.ndarray:
-    """L2-normalize vectors while keeping zero rows stable."""
+    """L2-normalize vectors while keeping empty-string rows stable."""
 
     if vectors.size == 0:
         return vectors.astype(np.float32)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    # Empty strings produce all-zero vectors. Treat their norm as one so the
-    # division leaves them at zero instead of creating NaN values.
     norms[norms == 0.0] = 1.0
     return (vectors / norms).astype(np.float32)
 
 
 def _sentence_transformer_incompatibility() -> str:
-    """Return a reason string when installed optional packages are incompatible."""
+    """Return a reason string when optional embedding packages are incompatible."""
 
     try:
         transformers_version = metadata.version("transformers")
         torch_version = metadata.version("torch")
     except metadata.PackageNotFoundError:
         return "missing-optional-embedding-package"
-    # Some environments install transformers without a new enough torch build.
-    # Checking versions before import keeps the vector path predictable.
     if _version_at_least(transformers_version, 5, 0) and not _version_at_least(torch_version, 2, 4):
         return "transformers-requires-newer-torch"
     return ""
