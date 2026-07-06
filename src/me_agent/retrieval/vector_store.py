@@ -41,6 +41,9 @@ class VectorStore:
 
         resolved_model = embedding_model or EmbeddingModel()
         chunk_list = list(chunks)
+        # Corpus embeddings are computed once during retriever construction.
+        # Query-time work is then limited to encoding the user query and scoring
+        # against this fixed matrix or FAISS index.
         vectors = resolved_model.encode([chunk.content for chunk in chunk_list])
         index = _build_faiss_index(vectors)
         return cls(chunk_list, vectors, resolved_model, index=index)
@@ -56,6 +59,8 @@ class VectorStore:
 
         if not self.chunks or top_k <= 0:
             return []
+        # Both available embedding backends return L2-normalized vectors, so
+        # inner product is equivalent to cosine similarity throughout this file.
         query_vector = self.embedding_model.encode([query])
         candidate_indices = self._candidate_indices(required_sources)
         if not candidate_indices:

@@ -67,6 +67,9 @@ class DeepSeekAnswerGenerator:
         client = self._build_client()
         if client is not None:
             try:
+                # The live model receives only retrieved evidence. This keeps
+                # answers grounded even when an attacker asks it to ignore
+                # sources or invent ECU specifications.
                 response = client.invoke(prompt)
                 content = _normalize_model_text(getattr(response, "content", str(response)))
                 if content:
@@ -94,6 +97,8 @@ class DeepSeekAnswerGenerator:
         if not api_key:
             return None
         try:
+            # Import lazily so the package remains usable in offline/no-key
+            # environments that only exercise the deterministic fallback path.
             from langchain_openai import ChatOpenAI  # pylint: disable=import-outside-toplevel
         except ImportError:
             return None
@@ -145,6 +150,9 @@ def _ranked_sentences(
             seen.add(normalized)
             sentence_tokens = set(_content_tokens(normalized))
             overlap = len(query_tokens & sentence_tokens) / max(len(query_tokens), 1)
+            # Combine three grounded signals: lexical overlap with the question,
+            # small domain boosts for known ECU phrasing gaps, and the upstream
+            # retrieval score. No question-id-specific answer rules are used.
             score = overlap + _domain_fact_bonus(question, normalized) + 0.10 * result.score
             if score > 0:
                 ranked.append((normalized, score))
@@ -161,6 +169,9 @@ def _split_sentences(text: str) -> list[str]:
         if not stripped:
             continue
         if "|" in stripped:
+            # Markdown table rows usually contain complete specs. Treating a row
+            # as one fact prevents the fallback from separating labels, values,
+            # and units into less useful fragments.
             table_text = " ".join(part.strip() for part in stripped.split("|") if part.strip())
             if set(table_text.replace(" ", "")) <= {"-", ":"}:
                 continue
@@ -180,6 +191,8 @@ def _content_tokens(text: str) -> list[str]:
     ]
     token_set = set(tokens)
     for triggers, expansion in GENERATION_QUERY_EXPANSION_GROUPS:
+        # Use the same deterministic synonym idea as retrieval so fallback
+        # ranking understands user phrasing that differs from manual wording.
         if token_set & set(triggers):
             tokens.extend(tokenize(expansion))
     return tokens
@@ -229,6 +242,9 @@ def _build_prompt(
         f"SOURCE: {result.chunk.metadata.get('source')}\n{result.chunk.content}"
         for result in retrieved_context
     )
+    # Evidence lines are ranked snippets placed before the full context. They
+    # steer the LLM toward compact, high-signal facts while still preserving the
+    # complete retrieved chunks for grounding.
     evidence = "\n".join(_evidence_lines(question, retrieved_context))
     route_instruction = (
         "For comparison or feature-availability questions, compare every relevant "
@@ -270,6 +286,9 @@ def _evidence_lines(
             seen.add(normalized)
             tokens = set(_content_tokens(normalized))
             overlap = len(query_tokens & tokens) / max(len(query_tokens), 1)
+            # Tables and bolded spec labels tend to be higher-confidence manual
+            # evidence than surrounding prose, so they get a small prompt-order
+            # boost without hardcoding any specific question.
             table_bonus = 0.35 if "|" in sentence or "**" in sentence else 0.0
             evidence_line = f"- [{source}] {normalized}"
             scored.append((overlap + table_bonus + 0.05 * result.score, evidence_line))

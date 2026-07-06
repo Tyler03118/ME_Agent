@@ -65,6 +65,8 @@ class InMemoryKeywordRetriever:
             RetrievalResult(chunk=chunk, score=_keyword_score(query_tokens, _tokens(chunk.content)))
             for chunk in candidates
         ]
+        # Sort before enforcing source coverage so each required manual
+        # contributes its strongest matching chunk.
         scored.sort(key=lambda result: result.score, reverse=True)
         return _with_required_source_coverage(scored, required_sources, limit)
 
@@ -159,6 +161,8 @@ class HybridRetriever:
             required_sources=required_sources,
             top_k=candidate_limit,
         )
+        # Keyword-first merge keeps exact model/spec matches ahead of broader
+        # semantic matches, while still allowing vector recall to fill gaps.
         merged = _merge_keyword_then_vector(keyword_results, vector_results)
         return _with_required_source_coverage(merged, required_sources, limit)
 
@@ -241,6 +245,9 @@ def _with_required_source_coverage(
         return scored[:limit]
     selected: list[RetrievalResult] = []
     for source in sorted(required_sources):
+        # First pass: reserve the best hit from every source requested by the
+        # route. This prevents multi-manual comparisons from being dominated by
+        # one highly similar manual.
         source_results = [
             result for result in scored if result.chunk.metadata.get("source") == source
         ]
@@ -248,6 +255,8 @@ def _with_required_source_coverage(
             selected.append(source_results[0])
     selected_ids = {_chunk_id(result.chunk) for result in selected}
     for result in scored:
+        # Second pass: fill the remaining slots by global score, skipping chunks
+        # already selected for source coverage.
         if len(selected) >= max(limit, len(required_sources)):
             break
         if _chunk_id(result.chunk) not in selected_ids:
@@ -313,6 +322,9 @@ def _expanded_query_text(text: str) -> str:
     tokens = _tokens(normalized)
     expansions: list[str] = []
     for triggers, expansion in RETRIEVAL_QUERY_EXPANSION_GROUPS:
+        # Deterministic expansion is the lightweight "intelligence" here: terms
+        # like "thermal tolerance" can match manual wording such as "operating
+        # temperature" without requiring an LLM router in the retrieval loop.
         if tokens & set(triggers):
             expansions.append(expansion)
     if not expansions:
