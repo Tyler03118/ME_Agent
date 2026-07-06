@@ -65,13 +65,3 @@ flowchart LR
     G --> C["Claim-level verification"]
     C --> O["Answer + citations + diagnostics"]
 ```
-
-## Why Not Just Add A Bigger LLM?
-
-- Bigger models do not fix missing evidence.
-- Bigger models do not know which manual version is authoritative.
-- Bigger models do not automatically enforce source coverage.
-- Bigger models can still hallucinate numeric specs.
-
-The production path should strengthen evidence construction, retrieval quality,
-verification, and evaluation gates before increasing model complexity.
