@@ -192,7 +192,7 @@ fact/source/route checks.
 - **Tier 3:** Custom evaluation framework with MLflow metric/artifact logging,
   deterministic stress metrics, a custom adversarial stress set, visual HTML eval
   reports, low-confidence human-review flagging, and a concrete scalability
-  strategy in `docs/scalability_strategy.md`.
+  plan in `reports/scalability_plan_showcase.md`.
 
 ## Validation
 
