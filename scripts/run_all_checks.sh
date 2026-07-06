@@ -3,14 +3,44 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="${VENV_DIR:-${ROOT_DIR}/.venv}"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
 RUN_LIVE_EVAL="${RUN_LIVE_EVAL:-0}"
+
+pick_python() {
+  local candidates=()
+  if [[ -n "${PYTHON_BIN:-}" ]]; then
+    candidates+=("${PYTHON_BIN}")
+  fi
+  candidates+=(python3.13 python3.12 python3.11)
+
+  for candidate in "${candidates[@]}"; do
+    command -v "${candidate}" >/dev/null 2>&1 || continue
+    if "${candidate}" - <<'PY' >/dev/null 2>&1
+import sys
+
+raise SystemExit(0 if sys.version_info >= (3, 11) else 1)
+PY
+    then
+      command -v "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+PYTHON_BIN="$(pick_python)" || {
+  echo "ERROR: Python >= 3.11 is required, but no compatible interpreter was found." >&2
+  echo "Recommended with uv: uv venv --python 3.11 .venv" >&2
+  echo "Or with Homebrew: brew install python@3.11" >&2
+  echo "Or with pyenv: pyenv install 3.11.9 && pyenv local 3.11.9" >&2
+  exit 1
+}
 
 cd "${ROOT_DIR}"
 
 echo "== ME Engineering Assistant checks =="
 echo "Repository: ${ROOT_DIR}"
 echo "Virtual environment: ${VENV_DIR}"
+echo "Python interpreter: ${PYTHON_BIN}"
 echo
 
 echo "== Create virtual environment =="

@@ -66,8 +66,26 @@ Package layout:
 
 ## Setup
 
+Python 3.11 or newer is required. The validation script only detects an
+available interpreter and will not install Python for you; this keeps the script
+safe for reviewer machines. Recommended options:
+
 ```bash
-python -m venv .venv
+# uv
+uv venv --python 3.11 .venv
+
+# Homebrew
+brew install python@3.11
+
+# pyenv
+pyenv install 3.11.9
+pyenv local 3.11.9
+```
+
+After Python is available, install the package:
+
+```bash
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 python -c "import me_agent"
