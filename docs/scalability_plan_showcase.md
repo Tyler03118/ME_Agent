@@ -1,6 +1,6 @@
-# Interview Showcase: Scalability Plan
+# Scalability Plan Showcase
 
-Use this as the visual version of the limitations and production roadmap.
+Concise visual summary of current limitations and the production roadmap.
 
 ## Starting Point
 
@@ -75,19 +75,3 @@ flowchart LR
 
 The production path should strengthen evidence construction, retrieval quality,
 verification, and evaluation gates before increasing model complexity.
-
-## Concrete Next Steps
-
-1. Replace character chunking with Markdown/table-aware chunks.
-2. Move router rules into a declarative table with regression tests.
-3. Add source candidate selection before chunk-level retrieval.
-4. Add BM25 and a reranker while keeping keyword explainability.
-5. Convert stress-set route/source/fact checks into hard gates.
-6. Add structured citations and claim-level verification.
-7. Turn human-review cases into new tests and eval rows.
-
-## Interview Close
-
-The scalable plan is to preserve evidence-path control while replacing the
-prototype internals with production-grade components. Reliability comes from the
-whole evidence path, not from the LLM alone.

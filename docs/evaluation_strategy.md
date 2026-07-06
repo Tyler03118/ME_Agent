@@ -22,9 +22,9 @@ Latest recorded metrics:
 
 | Run | Cases | Accuracy | used_llm_rate | Fallback cases | Avg latency | Max latency | Mean fact recall | Source match | Route match | Forbidden violations |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Live challenge | 10 | 1.0000 | 1.0000 | 0 | 2.5614s | 4.1594s | 0.9108 | 1.0000 | 1.0000 | 0 |
+| Live challenge | 10 | 1.0000 | 1.0000 | 0 | 3.2101s | 6.9711s | 0.8983 | 1.0000 | 1.0000 | 0 |
 | Offline no-key | 10 | 0.9000 | 0.0000 | 10 | 0.0031s | 0.0107s | 0.6623 | 1.0000 | 1.0000 | 0 |
-| Live stress | 14 | 1.0000 | 0.7857 | 3 | 2.1731s | 4.0309s | 0.9405 | 0.9643 | 0.9286 | 0 |
+| Live stress | 14 | 1.0000 | 0.7857 | 3 | 2.5009s | 5.7232s | 0.9643 | 0.9643 | 0.9286 | 0 |
 
 ## Evaluation Pipeline
 
@@ -159,7 +159,7 @@ python scripts/render_eval_report.py \
 ## What the Reports Are For
 
 The JSON artifacts are the source of truth for automated metrics. The HTML
-reports are for human review during interviews or demos:
+reports are for human review during demos and technical review:
 
 - summary cards show pass rate, latency, fallback, and LLM usage;
 - case details show question, expected answer, actual answer, route, sources,
@@ -180,7 +180,7 @@ The current evaluator is useful and honest, but it is still heuristic.
 | Fact matching is phrase/token based. | Good for model IDs, units, commands, and feature acronyms. | Add claim-level verifier and evidence IDs. |
 | Offline run is lower quality by design. | Treated as degradation smoke test, not main score. | Separate offline smoke from production eval gate. |
 
-## Interview Summary
+## Summary
 
 The evaluation system demonstrates Tier 3 because it is more than a single
 accuracy number. It runs the full agent, records detailed diagnostics, supports
