@@ -1,8 +1,9 @@
 # System Design Showcase
 
-ME Agent is a source-aware ECU manual RAG assistant with explicit control over
-query scope, source routing, evidence retrieval, grounded generation,
-verification, confidence, and evaluation.
+The core design principle is evidence-path control. In an industrial setting,
+wrong specs can lead to wrong engineering decisions, so the system prioritizes
+grounded evidence, traceable sources, and conservative behavior when support is
+weak.
 
 
 ## Runtime Graph
