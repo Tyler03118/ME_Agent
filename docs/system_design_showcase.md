@@ -124,12 +124,45 @@ but it does not decide which manuals are valid sources. Prompt text such as
 "ignore the manuals" cannot change the source policy.
 
 ## Retrieval Design
+Retrieval starts from the route decision. The router decides the required source
+policy, while the retriever decides which chunks inside that policy are the best
+evidence for generation.
 
-| Mode | How it works | Best for |
-| --- | --- | --- |
-| Keyword | Exact token overlap. | Model IDs, commands, units, numeric specs. |
-| Vector | Embedding similarity with FAISS/numpy. | Paraphrased questions. |
-| Hybrid | Keyword first, vector recall second. | Current default for balanced precision and recall. |
+```mermaid
+flowchart TD
+    A["Question + RouteDecision"] --> B["Required source policy"]
+    B --> C["Keyword retriever"]
+    B --> D["Vector retriever"]
+
+    C --> C1["Exact-match strength<br/>model IDs, units, commands"]
+
+    D --> E["EmbeddingModel"]
+    E --> E1{"sentence-transformers available?"}
+    E1 -- "Yes" --> E2["SentenceTransformer embeddings"]
+    E1 -- "No" --> E3["Deterministic hashing embeddings"]
+
+    E2 --> F["VectorStore"]
+    E3 --> F
+    F --> F1{"FAISS available?"}
+    F1 -- "Yes" --> F2["FAISS similarity search"]
+    F1 -- "No" --> F3["Numpy similarity search"]
+
+    C1 --> G["Hybrid merge"]
+    F2 --> G
+    F3 --> G
+    G --> H["Deduplicate chunks"]
+    H --> I["Preserve required source coverage"]
+    I --> J["Top evidence chunks"]
+    J --> K["Generation"]
+```
+
+Keyword retrieval protects exact engineering facts such as model IDs, numeric
+specs, units, and driver commands. Vector retrieval improves recall for
+paraphrased questions by embedding chunks once and searching them through FAISS
+when available, with numpy similarity as the local fallback. If the semantic
+embedding stack is unavailable, deterministic hashing keeps offline runs
+reproducible, but it is treated as a fallback rather than production semantic
+retrieval.
 
 ## Generation
 
